@@ -93,3 +93,7 @@ unet/
 
 # Hugging Face cache
 /.cache/
+
+# YOLO cache files
+labels.cache
+results.csv

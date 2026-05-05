@@ -107,7 +107,7 @@ logger = logging.get_logger(__name__)
 def image2latent(vae, image, width, height, device, generator):
     """
     将输入图像编码为Stable Diffusion的潜空间表示
-    
+
     参数:
         vae: Variational Autoencoder模型,用于将图像编码到潜空间
         image: 输入的PIL图像或numpy数组格式的图像
@@ -115,10 +115,10 @@ def image2latent(vae, image, width, height, device, generator):
         height: 目标高度,用于调整图像大小
         device: torch设备(如'cuda'或'cpu')
         generator: 随机数生成器,用于控制采样过程的确定性
-    
+
     返回:
         torch.Tensor: 编码后的潜空间表示,形状为[1, 4, height//8, width//8]
-    
+
     处理流程:
         1. 将图像调整为目标尺寸
         2. 将像素值从[0,255]归一化到[-1,1]
@@ -127,21 +127,24 @@ def image2latent(vae, image, width, height, device, generator):
         5. 乘以缩放因子0.18215(SD模型的固定缩放因子)
     """
     init_image = image
-    # Resize and transpose for numpy b h w c -> torch b c h w
     init_image = init_image.resize((width, height), resample=Image.Resampling.LANCZOS)
     init_image = np.array(init_image).astype(np.float32) / 255.0 * 2.0 - 1.0
     init_image = torch.from_numpy(init_image[np.newaxis, ...].transpose(0, 3, 1, 2))
 
-    # If there is alpha channel, composite alpha for white, as the diffusion model does not support alpha channel
     if init_image.shape[1] > 3:
         init_image = init_image[:, :3] * init_image[:, 3:] + (1 - init_image[:, 3:])
 
-    # Move image to GPU
     init_image = init_image.to(device)
 
-    # Encode image
+    vae_dtype = next(vae.parameters()).dtype
+    if vae_dtype == torch.float16:
+        init_image = init_image.half()
+
     with autocast(device):
         init_latent = vae.encode(init_image).latent_dist.sample(generator=generator) * 0.18215
+
+    if vae_dtype == torch.float16:
+        init_latent = init_latent.half()
 
     return init_latent
 
@@ -235,6 +238,16 @@ class RelationalAttendAndExcitePipeline(StableDiffusionPipeline):
         - 支持多种输出格式:PIL图像、numpy数组或torch张量
     """
     _optional_components = ["safety_checker", "feature_extractor"]
+    
+    _clip_cache = {}
+
+    def _get_clip_model(self, device):
+        device_key = str(device)
+        if device_key not in RelationalAttendAndExcitePipeline._clip_cache:
+            model, preprocess = _load_clip_model(device=device)
+            model.train()
+            RelationalAttendAndExcitePipeline._clip_cache[device_key] = (model, preprocess)
+        return RelationalAttendAndExcitePipeline._clip_cache[device_key]
 
     def decode_latents_new(self, latents):
         """
@@ -1312,9 +1325,8 @@ class RelationalAttendAndExcitePipeline(StableDiffusionPipeline):
         criterion_mse = torch.nn.MSELoss()
         criterion_cosine = torch.nn.CosineSimilarity()
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model, preprocess = _load_clip_model(device=device)
-        model.train()
+        device = self._execution_device
+        model, preprocess = self._get_clip_model(device=device)
         clip_loss = CLIPLoss(device,
                              lambda_direction=1.0,
                              lambda_patch=0.0,
