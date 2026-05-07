@@ -1,8 +1,8 @@
 <div align="center">
 
-# AnomalyAny — 风机叶片缺陷智能生成与检测系统
+# Industrial Defect Generation — 工业缺陷智能生成与检测系统
 
-基于 CVPR 2025 论文 *"Unseen Visual Anomaly Generation"* 的工程化实现
+基于 CVPR 2025 论文 *"Unseen Visual Anomaly Generation"* 的通用工业异常样本生成框架
 
 [论文](https://openaccess.thecvf.com/content/CVPR2025/papers/Sun_Unseen_Visual_Anomaly_Generation_CVPR_2025_paper.pdf) · [项目主页](https://hansunhayden.github.io/AnomalyAny.github.io/) · [脚本详细文档](scripts/README.md) · [论文原始文档](docs/README.md)
 
@@ -12,29 +12,29 @@
 
 ## 项目简介
 
-本项目在 AnomalyAny 学术框架基础上，构建了面向**风机叶片缺陷**的端到端生成-检测系统，解决真实缺陷数据极度稀缺的问题。
+本项目将 AnomalyAny（CVPR 2025）学术框架工程化，构建了一套**通用工业缺陷智能生成与检测系统**，可适配风电叶片、金属零件、锂电池、纺织布料、PCB、钢铁冶金等多种工业场景。
 
 核心能力：
-- 仅需**一张正常样本图片**，即可生成文本描述对应的逼真异常图像
-- 集成 **VLM（视觉语言模型）** 自动生成高质量训练数据描述
-- 支持 **txt2img / img2img** 双模式，**SD / AnomalyAny** 双管道
-- 从异常生成到 YOLOv11-seg 实例分割检测的完整闭环
+- **任意工业场景**：准备好标注数据，快速适配新缺陷类型
+- **VLM 智能标注**：自动生成高质量结构化描述，无需人工撰写 Caption
+- **灵活生成模式**：4 种模式矩阵（txt2img/img2img × SD/AnomalyAny），覆盖从快速批生成到精准编辑
+- **端到端闭环**：缺陷生成 → LoRA 微调 → 检测训练 → 实例分割
 
 ---
 
 ## 项目结构
 
 ```
-AnomalyAny/
+IndustrialDefectGeneration/
 │
 ├── README.md                                    ← 本文件（项目总览）
 ├── docs/README.md                               ← AnomalyAny 论文原始文档
-├── scripts/README.md                            ← 风机管线脚本详细文档
+├── scripts/README.md                            ← 管线脚本详细文档
 │
 ├── ═══ 核心生成引擎 ═══
 │   ├── clip_pipeline_attend_and_excite.py       CLIP增强的Attend-and-Excite生成Pipeline
 │   ├── clip_loss.py                             CLIP损失函数（方向/全局/纹理）
-│   └── clip_utils/text_templates.py             CLIP文本模板
+│   └── clip_utils/text_templates.py              CLIP文本模板
 │
 ├── ═══ 评估指标 ═══
 │   └── metrics/
@@ -50,43 +50,57 @@ AnomalyAny/
 │       ├── fg_extraction.py                     前景提取
 │       └── vis_utils.py                         注意力热力图可视化
 │
-├── ═══ 风机叶片缺陷生成管线 ═══
+├── ═══ 工业缺陷生成管线 ═══
 │   └── scripts/
 │       ├── prepare_hq_datasets.py               VLM增强的高质量数据集生成
-│       ├── train_lora_unified.py                统一LoRA训练（单阶段/两阶段/自动）
+│       ├── train_lora_unified.py               统一LoRA训练（单阶段/两阶段/自动）
 │       ├── balance_dataset.py                   类别均衡
 │       └── generate_defects.py                  通用缺陷生成（4种模式）
 │
 ├── ═══ 数据集归档 ═══
 │   └── dataset_archive/
-│       ├── classified/processed_dataset/        (11505条)
+│       ├── classified/processed_dataset/         (11505条)
 │       └── classified/processed_dataset_v17/    (25127条)
 │
 ├── ═══ 辅助工具 ═══
 │   └── resplit_dataset.py                       分层抽样数据集重分割
 │
 └── ═══ 下游检测 ═══
-    └── train_yolo_stable.py                     YOLOv11-seg实例分割训练
+    └── train_yolo_stable.py                    YOLOv11-seg实例分割训练
 ```
+
+---
+
+## 适用场景
+
+| 行业 | 缺陷类型示例 |
+|------|-------------|
+| 🌀 风电叶片 | 脱漆、脱层、腐蚀、裂纹、雷击损伤 |
+| 🔩 金属零件 | 划痕、凹坑、锈蚀、裂纹、断裂 |
+| 🔋 锂电池 | 极片缺陷、隔膜破损、电解液泄漏 |
+| 🧵 纺织布料 | 断经、断纬、油污、色差、破洞 |
+| 📦 PCB电路板 | 短路、开路、焊点缺陷、元件偏移 |
+| 🏭 钢铁冶金 | 表面裂纹、夹杂物、划伤、氧化皮 |
+| 🚗 汽车零部件 | 涂装缺陷、装配误差、表面瑕疵 |
+| 💎 玻璃制品 | 气泡、划痕、结石、裂纹 |
 
 ---
 
 ## 端到端流程
 
 ```
-原始数据 (YOLO/COCO)
+原始标注数据 (YOLO/COCO)
     │
     ├──→ resplit_dataset.py ──→ 分层抽样 80:10:10 分割
     │
     ├──→ prepare_hq_datasets.py ──→ 高质量数据集
-    │    ├── full_images/       完整叶片图片
-    │    ├── full_masks/        缺陷区域mask
-    │    ├── patches/           缺陷patch
+    │    ├── full_images/       完整样本图片 + mask
+    │    ├── patches/           缺陷区域patch
     │    └── metadata.jsonl     VLM生成的详细caption
     │         │
     │         ↓
     │    train_lora_unified.py (--mode auto)
-    │    ├── 有 full_images → 两阶段训练（叶片外观 → 缺陷特征）
+    │    ├── 有 full_images → 两阶段训练（正常外观 → 缺陷特征）
     │    └── 只有 patches  → 单阶段训练（缺陷纹理）
     │         │
     │         ↓
@@ -114,13 +128,13 @@ conda env create -f env.yml
 
 ```bash
 python scripts/prepare_hq_datasets.py \
-    --dataset /path/to/yolo_dataset \
-    --label-map "0:DQ,1:TL,2:LW" \
+    --dataset /path/to/industrial_dataset \
+    --label-map "0:scratch,1:pitting,2:crack" \
     --output-dir ./hq_output \
     --use-vlm
 ```
 
-使用 `--use-vlm` 启用 VLM（Ollama qwen3.5:27b）自动生成包含 Location/Size/Visual Features/Severity 的结构化 caption。不启用时使用内置的28种缺陷类型默认描述。
+使用 `--use-vlm` 启用 VLM（Ollama qwen3.5:27b）自动生成包含 Location/Size/Visual Features/Severity 的结构化 caption。
 
 ### 2. LoRA 训练
 
@@ -130,14 +144,14 @@ python scripts/train_lora_unified.py \
     --data-dir ./hq_output \
     --mode auto
 
-# 两阶段训练
+# 两阶段训练（适用于 txt2img 完整生成）
 python scripts/train_lora_unified.py \
     --data-dir ./hq_output \
     --mode two-stage \
     --stage1-steps 2000 \
     --stage2-steps 3000
 
-# 单阶段训练
+# 单阶段训练（适用于 img2img 局部替换）
 python scripts/train_lora_unified.py \
     --data-dir ./hq_output \
     --mode single \
@@ -151,15 +165,15 @@ python scripts/train_lora_unified.py \
 python scripts/generate_defects.py \
     --mode txt2img \
     --pipe anomalyany \
-    --prompt "wind turbine blade with paint peeling near leading edge" \
+    --prompt "metal surface with scratch damage" \
     --lora-path ./outputs/lora_unified/two_stage/stage2/final \
-    --output ./output.png
+    --output ./result.png
 
 # img2img + SD（局部替换，精确控制）
 python scripts/generate_defects.py \
     --mode img2img \
     --pipe sd \
-    --image normal_blade.png \
+    --image normal_product.png \
     --mask defect_mask.png \
     --lora-path ./outputs/lora_unified/single/final \
     --output ./result.png
@@ -182,7 +196,9 @@ python train_yolo_stable.py
 
 ---
 
-## 支持的缺陷类型（28种）
+## 内置缺陷类型示例（以风电叶片为例）
+
+内置的 28 种缺陷描述模板，可按需替换为其他工业场景的缺陷定义。
 
 | 代码 | 描述 | 代码 | 描述 |
 |------|------|------|------|
