@@ -146,35 +146,45 @@ def parse_label_map(label_map_str):
 def expand_bbox(bbox, img_width, img_height, margin_ratio=0.1, max_size=None):
     """
     扩展bbox并添加边距
-    
+
     参数:
         bbox: (x_center, y_center, width, height) 归一化坐标
         img_width: 图片宽度
         img_height: 图片高度
         margin_ratio: 边距比例
         max_size: 最大边长
-        
+
     返回:
         (x1, y1, x2, y2) 像素坐标
     """
     x_center, y_center, w, h = bbox
-    
+
+    # 确保宽高为正
+    w = abs(w)
+    h = abs(h)
+
     # 转换为像素坐标
     x_center_px = x_center * img_width
     y_center_px = y_center * img_height
     w_px = w * img_width
     h_px = h * img_height
-    
+
     # 添加边距
     margin_x = w_px * margin_ratio
     margin_y = h_px * margin_ratio
-    
-    x1 = int(max(0, x_center_px - w_px / 2 - margin_x))
-    y1 = int(max(0, y_center_px - h_px / 2 - margin_y))
-    x2 = int(min(img_width, x_center_px + w_px / 2 + margin_x))
-    y2 = int(min(img_height, y_center_px + h_px / 2 + margin_y))
-    
-    return x1, y1, x2, y2
+
+    x1 = max(0, x_center_px - w_px / 2 - margin_x)
+    y1 = max(0, y_center_px - h_px / 2 - margin_y)
+    x2 = min(img_width, x_center_px + w_px / 2 + margin_x)
+    y2 = min(img_height, y_center_px + h_px / 2 + margin_y)
+
+    # 确保 x1 <= x2, y1 <= y2
+    if x1 > x2:
+        x1, x2 = x2, x1
+    if y1 > y2:
+        y1, y2 = y2, y1
+
+    return int(x1), int(y1), int(x2), int(y2)
 
 
 def extract_defect_patch(img, bbox, target_size=512, margin_ratio=0.15):
@@ -201,15 +211,15 @@ def extract_defect_patch(img, bbox, target_size=512, margin_ratio=0.15):
     return patch
 
 
-def generate_mask(img_size, bbox, mask_value=0, bg_value=255):
+def generate_mask(img_size, bbox, mask_value=255, bg_value=0):
     """
     生成缺陷区域的二值掩码
     
     参数:
         img_size: (width, height)
         bbox: (x_center, y_center, width, height) 归一化坐标
-        mask_value: 掩码值（缺陷区域）
-        bg_value: 背景值
+        mask_value: 掩码值（缺陷区域，白色=255）
+        bg_value: 背景值（黑色=0）
         
     返回:
         PIL.Image: 二值掩码
@@ -233,14 +243,14 @@ def extract_defect_mask(img, bbox, target_size=512, margin_ratio=0.15):
         target_size: 输出掩码大小
         
     返回:
-        PIL.Image: 调整后的掩码
+        PIL.Image: 调整后的掩码（白色=缺陷=255，黑色=背景=0）
     """
     img_width, img_height = img.size
     x1, y1, x2, y2 = expand_bbox(bbox, img_width, img_height, margin_ratio)
     
-    mask = Image.new('L', img.size, 255)
+    mask = Image.new('L', img.size, 0)
     draw = ImageDraw.Draw(mask)
-    draw.rectangle([x1, y1, x2, y2], fill=0)
+    draw.rectangle([x1, y1, x2, y2], fill=255)
     
     mask_patch = mask.crop((x1, y1, x2, y2))
     
@@ -325,32 +335,22 @@ class OllamaVLMEnhancer:
             self.model_name = None
     
     def describe_defect_comprehensive(self, full_image: Image, defect_patch: Image, 
-                                      bbox, defect_type: str, mask: Image = None) -> dict:
+                                      bbox, defect_type: str, mask: Image = None) -> str:
         """
-        综合分析：同时输入完整图片+缺陷patch
-        
-        这种方法让VLM能够：
-        1. 从完整图片了解叶片整体外观和缺陷位置
-        2. 从patch看清楚缺陷的细节特征
+        综合分析：同时输入完整图片+缺陷patch，直接输出 SD 微调用 caption
         
         参数:
             full_image: 完整叶片图片（带红色框标注缺陷位置）
             defect_patch: 缺陷区域的裁剪图（能看到细节）
             bbox: 缺陷的边界框
             defect_type: 缺陷类型
-            mask: 缺陷mask（可选，用于更精确的区域分析）
+            mask: 缺陷mask（可选）
             
         返回:
-            dict: {
-                'location': '缺陷位置',
-                'size': '缺陷大小',
-                'visual_features': '视觉特征',
-                'severity': '严重程度',
-                'context': '周围环境'
-            }
+            str: SD 微调用的标准化 caption
         """
         if not self.model_name:
-            return self._default_comprehensive_info(defect_type)
+            return self._default_caption(defect_type)
         
         defect_desc = BLADE_DEFECT_INFO.get(defect_type, f'{defect_type} defect')
         x_center, y_center, width, height = bbox
@@ -358,23 +358,25 @@ class OllamaVLMEnhancer:
         x_pos = "left" if x_center < 0.33 else ("center" if x_center < 0.66 else "right")
         y_pos = "tip" if y_center < 0.33 else ("middle" if y_center < 0.66 else "root")
         
-        prompt = f"""Analyze this wind turbine blade image. The image contains:
-1. First image: Complete blade with defect location marked by red box
-2. Second image: Close-up of the defect area
+        prompt = f"""You are creating training captions for Stable Diffusion fine-tuning.
+You will receive two images: (1) a complete wind turbine blade with defect marked by red box, and (2) a close-up of the defect area.
 
 Defect type: {defect_desc}
 Defect position: Approximately {x_pos} side horizontally, {y_pos} position vertically
 
-Please provide detailed analysis in JSON format (IMPORTANT: Output in ENGLISH only):
-{{
-    "location": "Specific location on blade (e.g., leading edge near tip, trailing edge middle, surface center)",
-    "size": "Defect size assessment (minor <5cm, moderate 5-15cm, severe >15cm)",
-    "visual_features": "Detailed visual features description (colors, textures, edge shapes, specific appearance)",
-    "severity": "Severity level (minor/moderate/severe)",
-    "context": "Surrounding blade surface condition"
-}}
+Generate ONE clean caption for SD fine-tuning. Follow these rules:
+1. Start with "wind turbine blade" (lowercase, no proper nouns)
+2. Use simple, clear descriptions a diffusion model can learn
+3. Include: defect type, location, visual features, severity
+4. End with "professional blade inspection, detailed" 
+5. Keep it concise (40-150 characters total)
+6. Use lowercase for all words except the first letter
+7. Output ONLY the caption, nothing else
 
-Output JSON only, no other content. Use English for all field values."""
+Example output format:
+"wind turbine blade surface with dark charcoal streaks on leading edge, rough gritty texture, severe damage, professional blade inspection, detailed"
+
+Now analyze the provided images and output your caption:"""
         
         try:
             full_base64 = image_to_base64(full_image)
@@ -382,33 +384,38 @@ Output JSON only, no other content. Use English for all field values."""
             
             response = requests.post(
                 self.api_url,
-                json={{
+                json={
                     "model": self.model_name,
                     "prompt": prompt,
                     "images": [full_base64, patch_base64],
                     "stream": False,
                     "think": False,
-                    "options": {{
+                    "options": {
                         "temperature": 0.3,
-                        "num_predict": 300
-                    }}
-                }},
+                        "num_predict": 200
+                    }
+                },
                 timeout=180
             )
             
             if response.status_code == 200:
                 result = response.json()
-                caption = result.get('response', '').strip()
+                raw_response = result.get('response', '').strip()
                 
-                if self._contains_chinese(caption):
-                    print(f"    ⚠️ 综合分析：检测到中文输出，使用默认信息")
-                    return self._default_comprehensive_info(defect_type)
+                if not raw_response:
+                    return self._default_caption(defect_type)
                 
-                return self._parse_comprehensive_response(caption, defect_type)
+                if self._contains_chinese(raw_response):
+                    return self._default_caption(defect_type)
+                
+                caption = self._clean_caption(raw_response, defect_type)
+                if caption:
+                    return caption
+                    
         except Exception as e:
             pass
         
-        return self._default_comprehensive_info(defect_type)
+        return self._default_caption(defect_type)
     
     def describe_defect_patch(self, patch_image: Image, defect_type: str) -> dict:
         """
@@ -558,6 +565,17 @@ Output JSON only, no other content."""
             pass
         return self._default_defect_info(defect_type)
     
+    def _parse_comprehensive_response(self, response: str, defect_type: str) -> dict:
+        """解析VLM综合分析响应"""
+        try:
+            import re
+            json_match = re.search(r'\{[^}]+\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+        except:
+            pass
+        return self._default_comprehensive_info(defect_type)
+    
     def _parse_location_response(self, response: str) -> dict:
         """解析VLM对位置描述的响应"""
         try:
@@ -569,6 +587,46 @@ Output JSON only, no other content."""
             pass
         return self._default_location_info()
     
+    def _clean_caption(self, raw_response: str, defect_type: str) -> str:
+        """清理 VLM 输出的 caption，确保符合 SD 微调格式"""
+        caption = raw_response.strip()
+        caption = caption.strip('"').strip("'").strip()
+        
+        lines = caption.split('\n')
+        for line in lines:
+            line = line.strip()
+            if line and len(line) > 10:
+                caption = line
+                break
+        
+        if not caption.startswith('wind turbine'):
+            return self._default_caption(defect_type)
+        
+        if len(caption) > 200:
+            caption = caption[:200]
+        
+        if not caption.endswith('detailed'):
+            if not caption.endswith('inspection'):
+                caption = caption.rstrip(',').strip()
+        
+        return caption
+    
+    def _default_caption(self, defect_type: str) -> str:
+        """生成默认的 SD caption"""
+        desc = BLADE_DEFECT_INFO.get(defect_type, f'{defect_type} damage')
+        return f"wind turbine blade surface with {desc}, professional blade inspection, detailed"
+    
+    def _default_comprehensive_info(self, defect_type: str) -> dict:
+        """默认综合缺陷信息"""
+        desc = BLADE_DEFECT_INFO.get(defect_type, f'{defect_type} damage')
+        return {
+            'location': 'blade surface',
+            'size': 'moderate (5-15cm)',
+            'visual_features': desc,
+            'severity': 'moderate',
+            'context': 'wind turbine blade surface area'
+        }
+
     def _default_defect_info(self, defect_type: str) -> dict:
         """默认缺陷信息"""
         desc = BLADE_DEFECT_INFO.get(defect_type, f'{defect_type} damage')
@@ -577,47 +635,13 @@ Output JSON only, no other content."""
             'size': 'moderate (5-15cm)',
             'severity': 'moderate'
         }
-    
+
     def _default_location_info(self) -> dict:
         """默认位置信息"""
         return {
             'location': 'blade surface',
             'context': 'wind turbine blade surface area'
         }
-    
-    def generate_comprehensive_caption(self, defect_info: dict, defect_type: str) -> str:
-        """
-        生成综合caption
-        
-        参数:
-            defect_info: 综合缺陷信息（包含location, size, visual_features, severity, context）
-            defect_type: 缺陷类型
-            
-        返回:
-            str: 完整的caption
-        """
-        visual = defect_info.get('visual_features', '')
-        size = defect_info.get('size', 'moderate')
-        severity = defect_info.get('severity', 'moderate')
-        location = defect_info.get('location', 'blade surface')
-        
-        parts = []
-        
-        if location:
-            parts.append(f"near {location}")
-        
-        if severity:
-            parts.append(f"{severity} severity")
-        
-        if visual:
-            parts.append(visual)
-        
-        if size:
-            parts.append(f"size: {size}")
-        
-        caption = f"wind turbine blade with {' '.join(parts)}"
-        
-        return caption
 
 
 def process_yolo_dataset_hq(dataset_path, label_map, args, metadata):
@@ -695,7 +719,24 @@ def process_yolo_dataset_hq(dataset_path, label_map, args, metadata):
                         continue
                     
                     defect_type = label_map[class_id]
-                    bbox = tuple(map(float, parts[1:5]))
+                    coords = list(map(float, parts[1:]))
+                    
+                    # 根据坐标数量判断是 bbox 还是 polygon
+                    if len(coords) == 4:
+                        # bbox 格式: x_center, y_center, width, height
+                        bbox = tuple(coords)
+                    else:
+                        # polygon 格式: x1,y1,x2,y2,... 找到 bounding box
+                        x_coords = coords[0::2]
+                        y_coords = coords[1::2]
+                        x_min, x_max = min(x_coords), max(x_coords)
+                        y_min, y_max = min(y_coords), max(y_coords)
+                        bbox = (
+                            (x_min + x_max) / 2,
+                            (y_min + y_max) / 2,
+                            x_max - x_min,
+                            y_max - y_min
+                        )
                     
                     # 调整完整图片大小并生成mask
                     img_resized = img.resize((args.resolution, args.resolution), Image.Resampling.LANCZOS)
@@ -723,40 +764,29 @@ def process_yolo_dataset_hq(dataset_path, label_map, args, metadata):
                     mask.save(full_mask_path)
                     patch.save(patch_path)
                     
-                    # 默认信息
-                    defect_info = {
-                        'visual_features': BLADE_DEFECT_INFO.get(defect_type, f'{defect_type} damage'),
-                        'size': 'moderate (5-15cm)',
-                        'severity': 'moderate'
-                    }
-                    location_info = {
-                        'location': 'blade surface',
-                        'context': 'wind turbine blade'
-                    }
-                    
+                    caption = None
+                    vlm_called = False
                     if vlm:
                         try:
-                            # 传入完整图片+mask，让VLM知道精确的缺陷区域
-                            defect_info = vlm.describe_defect_comprehensive(
+                            caption = vlm.describe_defect_comprehensive(
                                 img_resized, patch, bbox_resized, defect_type, mask
                             )
+                            vlm_called = True
                         except Exception as e:
                             print(f"\n  ⚠️ VLM处理失败: {e}")
                     
-                    caption = vlm.generate_comprehensive_caption(
-                        defect_info, defect_type
-                    ) if vlm else f"wind turbine blade with {BLADE_DEFECT_INFO.get(defect_type, defect_type)}"
+                    if caption is None:
+                        caption = f"wind turbine blade surface with {BLADE_DEFECT_INFO.get(defect_type, defect_type)} damage, professional blade inspection, detailed"
+                    
+                    if count < 3:
+                        print(f"\n  [样本 {count}] VLM: {'是' if vlm_called else '否'}, caption: {caption[:80]}...")
                     
                     metadata.append({
                         'file_name': str(full_image_path.relative_to(args.output_dir)),
                         'mask_name': str(full_mask_path.relative_to(args.output_dir)),
                         'patch_name': str(patch_path.relative_to(args.output_dir)),
                         'text': caption,
-                        'defect_type': defect_type,
-                        'location': defect_info.get('location', 'blade surface'),
-                        'size': defect_info.get('size', ''),
-                        'visual_features': defect_info.get('visual_features', ''),
-                        'severity': defect_info.get('severity', '')
+                        'defect_type': defect_type
                     })
                     
                     count += 1
