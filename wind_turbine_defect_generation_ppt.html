@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>风机叶片缺陷智能生成与检测系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00D4AA;
+            --secondary: #0A84FF;
+            --accent: #FF6B35;
+            --dark: #0D1117;
+            --darker: #010409;
+            --card: #161B22;
+            --border: #30363D;
+            --text: #E6EDF3;
+            --text-dim: #8B949E;
+            --gradient-1: linear-gradient(135deg, #00D4AA 0%, #0A84FF 100%);
+            --gradient-2: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            --gradient-3: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--darker);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .slide {
+            min-height: 100vh;
+            padding: 60px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(10, 132, 255, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        .slide-tag {
+            display: inline-block;
+            padding: 6px 16px;
+            background: var(--gradient-1);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .slide-tag.secondary {
+            background: var(--gradient-2);
+        }
+
+        .slide-tag.tertiary {
+            background: var(--gradient-3);
+        }
+
+        h1 {
+            font-size: 72px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 30px;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: var(--text);
+        }
+
+        h3 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        p {
+            font-size: 20px;
+            color: var(--text-dim);
+            max-width: 900px;
+        }
+
+        .highlight {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .highlight-orange {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .highlight-blue {
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        /* Title Slide */
+        .title-slide {
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .title-slide h1 {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .title-slide .subtitle {
+            font-size: 24px;
+            color: var(--text-dim);
+            margin-bottom: 40px;
+        }
+
+        .title-slide .meta {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            margin-top: 60px;
+        }
+
+        .title-slide .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-dim);
+            font-size: 16px;
+        }
+
+        .title-slide .meta-item svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--primary);
+        }
+
+        .logo-container {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 40px;
+            background: var(--gradient-1);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 60px rgba(0, 212, 170, 0.3);
+        }
+
+        .logo-container svg {
+            width: 60px;
+            height: 60px;
+            stroke: white;
+            stroke-width: 2;
+        }
+
+        /* Grid Layout */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .card-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: white;
+            stroke-width: 2;
+        }
+
+        .card h4 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .card p {
+            font-size: 15px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        /* Flow Diagram */
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin: 50px 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-step {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 32px;
+            text-align: center;
+            min-width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .flow-step:hover {
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .flow-step .step-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .flow-step h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .flow-step p {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .flow-arrow {
+            color: var(--primary);
+            font-size: 24px;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            color: var(--text);
+        }
+
+        .code-block .keyword {
+            color: #FF7B72;
+        }
+
+        .code-block .string {
+            color: #A5D6FF;
+        }
+
+        .code-block .comment {
+            color: var(--text-dim);
+        }
+
+        .code-block .function {
+            color: #D2A8FF;
+        }
+
+        .code-block .variable {
+            color: #FFA657;
+        }
+
+        /* Feature List */
+        .feature-list {
+            list-style: none;
+            margin-top: 30px;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list .check {
+            width: 24px;
+            height: 24px;
+            background: var(--gradient-1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .feature-list .check svg {
+            width: 14px;
+            height: 14px;
+            stroke: white;
+            stroke-width: 3;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 48px;
+            font-weight: 900;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Architecture Diagram */
+        .arch-diagram {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 30px;
+        }
+
+        .arch-layer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .arch-box {
+            background: var(--darker);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .arch-box:hover {
+            border-color: var(--primary);
+        }
+
+        .arch-box.highlight {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(0, 212, 170, 0.2);
+        }
+
+        .arch-box h5 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .arch-box p {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .arch-connector {
+            width: 60px;
+            height: 2px;
+            background: var(--border);
+            position: relative;
+        }
+
+        .arch-connector::after {
+            content: '↓';
+            position: absolute;
+            right: -8px;
+            top: -10px;
+            color: var(--primary);
+            font-size: 16px;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+            margin-top: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 40px;
+            padding-left: 40px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 8px;
+            width: 18px;
+            height: 18px;
+            background: var(--gradient-1);
+            border-radius: 50%;
+            border: 4px solid var(--darker);
+        }
+
+        .timeline-item h4 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .timeline-item p {
+            font-size: 16px;
+            color: var(--text-dim);
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-table th {
+            background: var(--card);
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .comparison-table td {
+            font-size: 15px;
+            color: var(--text-dim);
+        }
+
+        .comparison-table tr:hover td {
+            background: rgba(0, 212, 170, 0.05);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--primary);
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .badge.orange {
+            background: rgba(255, 107, 53, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+
+        /* Tech Stack */
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .tech-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            color: var(--text-dim);
+            transition: all 0.3s ease;
+        }
+
+        .tech-item:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Navigation */
+        .nav-dots {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--border);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot:hover,
+        .nav-dot.active {
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+
+        /* Defect Types Grid */
+        .defect-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-top: 30px;
+        }
+
+        .defect-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .defect-item:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .defect-item .code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .defect-item .name {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        /* Conclusion */
+        .conclusion-points {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .conclusion-item {
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.1) 0%, rgba(10, 132, 255, 0.1) 100%);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        .conclusion-item h4 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--primary);
+        }
+
+        .conclusion-item p {
+            font-size: 15px;
+            color: var(--text-dim);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .slide {
+                padding: 40px 60px;
+            }
+            h1 { font-size: 56px; }
+            h2 { font-size: 40px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Slide 1: Title -->
+    <section class="slide title-slide" id="slide-1">
+        <div class="logo-container">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+            </svg>
+        </div>
+        <h1>风机叶片缺陷<br>智能生成与检测系统</h1>
+        <p class="subtitle">基于 CVPR 2025 AnomalyAny 框架的工程化实现</p>
+        <div class="meta">
+            <div class="meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <span>Stable Diffusion + CLIP</span>
+            </div>
+            <div class="meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
+                </svg>
+                <span>VLM 增强</span>
+            </div>
+            <div class="meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M3 9h18M9 21V9"/>
+                </svg>
+                <span>YOLOv11-seg</span>
+            </div>
+        </div>
+        <div class="slide-number">01 / 12</div>
+    </section>
+
+    <!-- Slide 2: Background -->
+    <section class="slide" id="slide-2">
+        <span class="slide-tag">Background</span>
+        <h2>为什么需要缺陷生成？</h2>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v4M12 16h.01"/>
+                    </svg>
+                </div>
+                <h4>核心挑战</h4>
+                <p>真实风机叶片缺陷数据极度稀缺<br>异常样本采集成本高、周期长<br>部分缺陷类型样本数量严重不足</p>
+            </div>
+            <div class="card">
+                <div class="card-icon" style="background: var(--gradient-2);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <h4>解决思路</h4>
+                <p>利用 Stable Diffusion 强大的<br>图像生成能力，基于少量真实样本<br>生成多样化的逼真未见异常</p>
+            </div>
+        </div>
+        <div class="stats-grid" style="margin-top: 60px;">
+            <div class="stat-card">
+                <div class="number">28</div>
+                <div class="label">缺陷类型</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">25K+</div>
+                <div class="label">数据集规模</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">4</div>
+                <div class="label">生成模式</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">2</div>
+                <div class="label">训练范式</div>
+            </div>
+        </div>
+        <div class="slide-number">02 / 12</div>
+    </section>
+
+    <!-- Slide 3: AnomalyAny Core -->
+    <section class="slide" id="slide-3">
+        <span class="slide-tag">Core Technology</span>
+        <h2>AnomalyAny 核心技术</h2>
+        <p>CVPR 2025 论文 "Unseen Visual Anomaly Generation" 提出的创新框架</p>
+        <div class="grid-3" style="margin-top: 50px;">
+            <div class="card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6M12 17v6"/>
+                    </svg>
+                </div>
+                <h4>注意力引导优化</h4>
+                <p>引导 Stable Diffusion 的注意力聚焦于生成"困难"异常概念</p>
+            </div>
+            <div class="card">
+                <div class="card-icon" style="background: var(--gradient-2);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                </div>
+                <h4>Prompt 引导细化</h4>
+                <p>通过详细描述进一步提升生成质量，确保文本与图像一致性</p>
+            </div>
+            <div class="card">
+                <div class="card-icon" style="background: var(--gradient-3);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M9 9h6M9 15h6"/>
+                    </svg>
+                </div>
+                <h4>CLIP Loss 监督</h4>
+                <p>使用 CLIP 模型确保生成图像与文本描述的方向一致性</p>
+            </div>
+        </div>
+        <div class="two-col" style="margin-top: 50px;">
+            <div>
+                <h3>技术优势</h3>
+                <ul class="feature-list">
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>仅需一张正常样本</strong>
+                            <p style="font-size: 15px;">测试时仅需提供一张正常图片作为条件</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>任意物体类型</strong>
+                            <p style="font-size: 15px;">支持为任意物体类型生成文本描述对应的异常</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>高质量生成</strong>
+                            <p style="font-size: 15px;">在 MVTec AD 和 VisA 数据集上验证有效性</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="arch-diagram">
+                <h3 style="margin-bottom: 30px;">Pipeline 架构</h3>
+                <div class="arch-layer">
+                    <div class="arch-box">
+                        <h5>正常图像</h5>
+                        <p>输入引导</p>
+                    </div>
+                    <div class="arch-box">
+                        <h5>文本描述</h5>
+                        <p>异常 Prompt</p>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: center; margin: -20px 0;">
+                    <div class="arch-connector"></div>
+                </div>
+                <div class="arch-layer">
+                    <div class="arch-box highlight">
+                        <h5>SD + Attend</h5>
+                        <p>生成引擎</p>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: center; margin: -20px 0;">
+                    <div class="arch-connector"></div>
+                </div>
+                <div class="arch-layer">
+                    <div class="arch-box">
+                        <h5>CLIP Loss</h5>
+                        <p>一致性监督</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">03 / 12</div>
+    </section>
+
+    <!-- Slide 4: Pipeline Overview -->
+    <section class="slide" id="slide-4">
+        <span class="slide-tag secondary">Pipeline</span>
+        <h2>完整技术流程</h2>
+        <div class="flow-container">
+            <div class="flow-step">
+                <div class="step-num">STEP 01</div>
+                <h4>数据准备</h4>
+                <p>VLM 增强<br>高质量数据集</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="step-num">STEP 02</div>
+                <h4>LoRA 微调</h4>
+                <p>单阶段/两阶段<br>领域适配</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="step-num">STEP 03</div>
+                <h4>缺陷生成</h4>
+                <p>4 种模式<br>灵活可控</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="step-num">STEP 04</div>
+                <h4>检测训练</h4>
+                <p>YOLOv11-seg<br>实例分割</p>
+            </div>
+        </div>
+        <div class="two-col" style="margin-top: 60px;">
+            <div>
+                <h3>核心能力</h3>
+                <ul class="feature-list">
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>端到端闭环</strong>
+                            <p style="font-size: 15px;">从数据生成到检测训练的完整闭环</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>模块化设计</strong>
+                            <p style="font-size: 15px;">各阶段可独立使用，灵活组合</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>生产级代码</strong>
+                            <p style="font-size: 15px;">完整的工程化脚本，即插即用</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h3>技术栈</h3>
+                <div class="tech-stack">
+                    <span class="tech-item">Stable Diffusion 2.1</span>
+                    <span class="tech-item">OpenCLIP ViT-L/14</span>
+                    <span class="tech-item">Ollama VLM</span>
+                    <span class="tech-item">BLIP</span>
+                    <span class="tech-item">PEFT LoRA</span>
+                    <span class="tech-item">YOLOv11-seg</span>
+                    <span class="tech-item">PyTorch</span>
+                    <span class="tech-item">Diffusers</span>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">04 / 12</div>
+    </section>
+
+    <!-- Slide 5: Step 1 - Data Preparation -->
+    <section class="slide" id="slide-5">
+        <span class="slide-tag">Step 01</span>
+        <h2>VLM 增强的高质量数据准备</h2>
+        <div class="two-col">
+            <div>
+                <h3>为什么需要 VLM？</h3>
+                <ul class="feature-list">
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>自动结构化描述</strong>
+                            <p style="font-size: 15px;">自动生成 Location/Size/Visual Features/Severity</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>双输入分析</strong>
+                            <p style="font-size: 15px;">完整图片定位 + Patch 细节分析</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>28 种缺陷类型</strong>
+                            <p style="font-size: 15px;">内置专业描述字典</p>
+                        </div>
+                    </li>
+                </ul>
+                <div style="margin-top: 30px;">
+                    <span class="badge">脱漆 DQ</span>
+                    <span class="badge">脱层 TL</span>
+                    <span class="badge">腐蚀 BX</span>
+                    <span class="badge">裂纹 LW</span>
+                    <span class="badge">雷击 LJ</span>
+                    <span class="badge">划痕 HH</span>
+                </div>
+            </div>
+            <div>
+                <div class="code-block">
+                    <pre><span class="comment"># VLM 增强模式（推荐）</span>
+python prepare_hq_datasets.py \
+  <span class="variable">--dataset</span> /path/to/yolo_dataset \
+  <span class="variable">--label-map</span> <span class="string">"0:DQ,1:TL,2:LW"</span> \
+  <span class="variable">--output-dir</span> ./hq_output \
+  <span class="variable">--use-vlm</span> \
+  <span class="variable">--vlm-model</span> qwen3.5:27b</pre>
+                </div>
+                <div class="arch-diagram" style="margin-top: 20px;">
+                    <h5 style="text-align: center; margin-bottom: 20px;">输出结构</h5>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div style="background: var(--darker); padding: 16px; border-radius: 8px; text-align: center;">
+                            <div style="color: var(--primary); font-weight: 600;">full_images/</div>
+                            <div style="font-size: 12px; color: var(--text-dim);">完整叶片 + Mask</div>
+                        </div>
+                        <div style="background: var(--darker); padding: 16px; border-radius: 8px; text-align: center;">
+                            <div style="color: var(--accent); font-weight: 600;">patches/</div>
+                            <div style="font-size: 12px; color: var(--text-dim);">缺陷区域 Patch</div>
+                        </div>
+                    </div>
+                    <div style="background: var(--darker); padding: 16px; border-radius: 8px; text-align: center; margin-top: 16px;">
+                        <div style="color: var(--secondary); font-weight: 600;">metadata.jsonl</div>
+                        <div style="font-size: 12px; color: var(--text-dim);">VLM 生成的详细 Caption</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">05 / 12</div>
+    </section>
+
+    <!-- Slide 6: Step 2 - LoRA Training -->
+    <section class="slide" id="slide-6">
+        <span class="slide-tag secondary">Step 02</span>
+        <h2>统一 LoRA 训练框架</h2>
+        <div class="two-col">
+            <div>
+                <h3>两种训练范式</h3>
+                <div class="card" style="margin-bottom: 20px;">
+                    <h4 style="color: var(--primary);">单阶段训练</h4>
+                    <p style="font-size: 14px;">仅学习缺陷 Patch 纹理，适用于 <span class="highlight">img2img</span> 局部替换</p>
+                    <div style="margin-top: 12px;">
+                        <span class="badge">patches</span>
+                        <span style="color: var(--text-dim);">→</span>
+                        <span class="badge orange">缺陷纹理 LoRA</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <h4 style="color: var(--accent);">两阶段训练</h4>
+                    <p style="font-size: 14px;">先学叶片外观，再学缺陷特征，适用于 <span class="highlight-orange">txt2img</span> 完整生成</p>
+                    <div style="margin-top: 12px;">
+                        <span class="badge">full_images</span>
+                        <span style="color: var(--text-dim);">→</span>
+                        <span class="badge">patches</span>
+                        <span style="color: var(--text-dim);">→</span>
+                        <span class="badge orange">叶片+缺陷 LoRA</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="code-block">
+                    <pre><span class="comment"># 自动检测模式（推荐）</span>
+python train_lora_unified.py \
+  <span class="variable">--data-dir</span> ./hq_output \
+  <span class="variable">--mode</span> <span class="string">auto</span>
+
+<span class="comment"># 单阶段训练</span>
+python train_lora_unified.py \
+  <span class="variable">--mode</span> <span class="string">single</span>
+
+<span class="comment"># 两阶段训练</span>
+python train_lora_unified.py \
+  <span class="variable">--mode</span> <span class="string">two-stage</span> \
+  <span class="variable">--stage1-steps</span> <span class="string">2000</span> \
+  <span class="variable">--stage2-steps</span> <span class="string">3000</span></pre>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 50px;">
+            <h3>训练参数建议</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>阶段</th>
+                        <th>分辨率</th>
+                        <th>学习率</th>
+                        <th>步数</th>
+                        <th>目标</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Stage 1</td>
+                        <td>512×512</td>
+                        <td>1e-4</td>
+                        <td>1500-2000</td>
+                        <td>学习叶片外观</td>
+                    </tr>
+                    <tr>
+                        <td>Stage 2</td>
+                        <td>256×256</td>
+                        <td>5e-5</td>
+                        <td>2000-3000</td>
+                        <td>学习缺陷特征（防遗忘）</td>
+                    </tr>
+                    <tr>
+                        <td>单阶段</td>
+                        <td>256×256</td>
+                        <td>1e-4</td>
+                        <td>2000-3000</td>
+                        <td>学习缺陷纹理</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="slide-number">06 / 12</div>
+    </section>
+
+    <!-- Slide 7: Step 3 - Defect Generation -->
+    <section class="slide" id="slide-7">
+        <span class="slide-tag tertiary">Step 03</span>
+        <h2>4 种缺陷生成模式</h2>
+        <div class="grid-2" style="margin-top: 40px;">
+            <div class="card" style="border-left: 4px solid var(--primary);">
+                <h4 style="color: var(--primary);">txt2img + SD</h4>
+                <p style="font-size: 14px;">纯文本生成，快速大批量，速度优先</p>
+                <div style="margin-top: 16px;">
+                    <span class="badge">文字</span>
+                    <span style="color: var(--text-dim);">→</span>
+                    <span class="badge">完整图像</span>
+                </div>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--accent);">
+                <h4 style="color: var(--accent);">txt2img + AnomalyAny</h4>
+                <p style="font-size: 14px;">CLIP 引导，文本-图像一致性更好</p>
+                <div style="margin-top: 16px;">
+                    <span class="badge">文字+LoRA</span>
+                    <span style="color: var(--text-dim);">→</span>
+                    <span class="badge orange">精确图像</span>
+                </div>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--secondary);">
+                <h4 style="color: var(--secondary);">img2img + SD</h4>
+                <p style="font-size: 14px;">局部替换，保持背景，只改 mask 区域</p>
+                <div style="margin-top: 16px;">
+                    <span class="badge">图像+Mask</span>
+                    <span style="color: var(--text-dim);">→</span>
+                    <span class="badge">编辑后图像</span>
+                </div>
+            </div>
+            <div class="card" style="border-left: 4px solid #9333EA;">
+                <h4 style="color: #9333EA;">img2img + AnomalyAny</h4>
+                <p style="font-size: 14px;">CLIP 引导 + 局部替换，最高质量控制</p>
+                <div style="margin-top: 16px;">
+                    <span class="badge">图像+Mask+LoRA</span>
+                    <span style="color: var(--text-dim);">→</span>
+                    <span class="badge" style="background: rgba(147, 51, 234, 0.1); border-color: #9333EA; color: #9333EA;">精准编辑</span>
+                </div>
+            </div>
+        </div>
+        <div class="two-col" style="margin-top: 50px;">
+            <div class="code-block">
+                <pre><span class="comment"># txt2img + AnomalyAny（推荐）</span>
+python generate_defects.py \
+  <span class="variable">--mode</span> <span class="string">txt2img</span> \
+  <span class="variable">--pipe</span> <span class="string">anomalyany</span> \
+  <span class="variable">--prompt</span> <span class="string">"wind turbine blade with paint peeling"</span> \
+  <span class="variable">--lora-path</span> ./outputs/lora_unified/two_stage/stage2/final</pre>
+            </div>
+            <div class="code-block">
+                <pre><span class="comment"># img2img + SD（局部替换）</span>
+python generate_defects.py \
+  <span class="variable">--mode</span> <span class="string">img2img</span> \
+  <span class="variable">--pipe</span> <span class="string">sd</span> \
+  <span class="variable">--image</span> normal_blade.png \
+  <span class="variable">--mask</span> defect_mask.png \
+  <span class="variable">--lora-path</span> ./outputs/lora_unified/single/final</pre>
+            </div>
+        </div>
+        <div class="slide-number">07 / 12</div>
+    </section>
+
+    <!-- Slide 8: Step 4 - Detection -->
+    <section class="slide" id="slide-8">
+        <span class="slide-tag">Step 04</span>
+        <h2>YOLOv11-seg 实例分割</h2>
+        <div class="two-col">
+            <div>
+                <h3>为什么选择分割？</h3>
+                <ul class="feature-list">
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>像素级定位</strong>
+                            <p style="font-size: 15px;">不仅仅是检测缺陷位置，还能精确到像素级边界</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>实例区分</strong>
+                            <p style="font-size: 15px;">区分同一图像中的多个缺陷实例</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5"/></svg></span>
+                        <div>
+                            <strong>增强数据</strong>
+                            <p style="font-size: 15px;">用生成的缺陷样本大幅扩充训练集</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <div class="code-block">
+                    <pre><span class="comment"># 训练配置</span>
+model = YOLO(<span class="string">"yolo11n-seg.pt"</span>)
+
+results = model.train(
+    <span class="variable">data</span>=<span class="string">"dataset.yaml"</span>,
+    <span class="variable">epochs</span>=<span class="string">150</span>,
+    <span class="variable">imgsz</span>=<span class="string">640</span>,
+    <span class="variable">batch</span>=<span class="string">16</span>,
+    <span class="variable">optimizer</span>=<span class="string">"SGD"</span>,
+    <span class="variable">lr0</span>=<span class="string">0.01</span>,
+    <span class="variable">mosaic</span>=<span class="string">1.0</span>,
+    <span class="variable">mixup</span>=<span class="string">0.2</span>,
+    <span class="variable">copy_paste</span>=<span class="string">0.1</span>,
+    <span class="variable">close_mosaic</span>=<span class="string">20</span>,
+    <span class="variable">amp</span>=<span class="string">True</span>,
+)</pre>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 50px;">
+            <h3>数据增强策略</h3>
+            <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr);">
+                <div class="stat-card">
+                    <div style="font-size: 14px; color: var(--text-dim);">HSV</div>
+                    <div style="font-size: 20px; color: var(--primary); margin-top: 8px;">H:0.01 S:0.5 V:0.3</div>
+                </div>
+                <div class="stat-card">
+                    <div style="font-size: 14px; color: var(--text-dim);">旋转</div>
+                    <div style="font-size: 20px; color: var(--primary); margin-top: 8px;">±10°</div>
+                </div>
+                <div class="stat-card">
+                    <div style="font-size: 14px; color: var(--text-dim);">平移</div>
+                    <div style="font-size: 20px; color: var(--primary); margin-top: 8px;">15%</div>
+                </div>
+                <div class="stat-card">
+                    <div style="font-size: 14px; color: var(--text-dim);">缩放</div>
+                    <div style="font-size: 20px; color: var(--primary); margin-top: 8px;">60%</div>
+                </div>
+                <div class="stat-card">
+                    <div style="font-size: 14px; color: var(--text-dim);">Mosaic</div>
+                    <div style="font-size: 20px; color: var(--primary); margin-top: 8px;">1.0 → 0</div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">08 / 12</div>
+    </section>
+
+    <!-- Slide 9: 28 Defect Types -->
+    <section class="slide" id="slide-9">
+        <span class="slide-tag tertiary">Defect Types</span>
+        <h2>支持的 28 种缺陷类型</h2>
+        <div class="defect-grid">
+            <div class="defect-item">
+                <div class="code">Normal</div>
+                <div class="name">正常</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">DQ</div>
+                <div class="name">脱漆</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">TL</div>
+                <div class="name">脱层</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">BX</div>
+                <div class="name">腐蚀</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">LW</div>
+                <div class="name">裂纹</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">LJ</div>
+                <div class="name">雷击</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">KL</div>
+                <div class="name">边缘开裂</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">HH</div>
+                <div class="name">划痕</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">SH</div>
+                <div class="name">结构损伤</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">WR</div>
+                <div class="name">污染</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">BQ</div>
+                <div class="name">补漆痕</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">JSQ</div>
+                <div class="name">接闪器</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">ZG</div>
+                <div class="name">增效件</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">LVJ</div>
+                <div class="name">铝尖完好</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">LVJPS</div>
+                <div class="name">铝尖破损</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">LJZS</div>
+                <div class="name">雷击烧痕</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">FYZ</div>
+                <div class="name">雨罩</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">FYZTL</div>
+                <div class="name">雨罩脱落</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">SZBJ</div>
+                <div class="name">数字标记</div>
+            </div>
+            <div class="defect-item">
+                <div class="code">JTBJ</div>
+                <div class="name">箭头标记</div>
+            </div>
+        </div>
+        <div class="slide-number">09 / 12</div>
+    </section>
+
+    <!-- Slide 10: Technical Architecture -->
+    <section class="slide" id="slide-10">
+        <span class="slide-tag">Architecture</span>
+        <h2>系统技术架构</h2>
+        <div class="arch-diagram" style="margin-top: 30px;">
+            <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                <div class="arch-box" style="background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(10, 132, 255, 0.1)); border-color: var(--primary);">
+                    <h5>YOLO/COCO</h5>
+                    <p>原始标注数据</p>
+                </div>
+                <div style="display: flex; align-items: center; color: var(--primary);">→</div>
+                <div class="arch-box highlight">
+                    <h5>VLM Enhanced</h5>
+                    <p>prepare_hq_datasets.py</p>
+                </div>
+                <div style="display: flex; align-items: center; color: var(--primary);">→</div>
+                <div class="arch-box">
+                    <h5>LoRA Fine-tune</h5>
+                    <p>train_lora_unified.py</p>
+                </div>
+                <div style="display: flex; align-items: center; color: var(--primary);">→</div>
+                <div class="arch-box highlight">
+                    <h5>Defect Gen</h5>
+                    <p>generate_defects.py</p>
+                </div>
+                <div style="display: flex; align-items: center; color: var(--primary);">→</div>
+                <div class="arch-box" style="background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(247, 147, 30, 0.1)); border-color: var(--accent);">
+                    <h5>YOLOv11-seg</h5>
+                    <p>Instance Segmentation</p>
+                </div>
+            </div>
+        </div>
+        <div class="grid-2" style="margin-top: 50px;">
+            <div>
+                <h3>生成引擎核心</h3>
+                <div class="card" style="margin-top: 20px;">
+                    <h4>RelationalAttendAndExcitePipeline</h4>
+                    <ul style="list-style: none; margin-top: 16px;">
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px;">
+                            <span style="color: var(--primary);">•</span>
+                            <span style="font-size: 14px;">CLIP 增强的 Attend-and-Excite</span>
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px;">
+                            <span style="color: var(--primary);">•</span>
+                            <span style="font-size: 14px;">5 种可配置损失（方向/patch/全局/流形/纹理）</span>
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px;">
+                            <span style="color: var(--primary);">•</span>
+                            <span style="font-size: 14px;">三重损失联合优化（注意力 + CLIP + Prompt）</span>
+                        </li>
+                        <li style="padding: 8px 0; display: flex; gap: 12px;">
+                            <span style="color: var(--primary);">•</span>
+                            <span style="font-size: 14px;">自动梯度管理和内存优化</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div>
+                <h3>工程化特性</h3>
+                <div class="card" style="margin-top: 20px;">
+                    <h4>Production Ready</h4>
+                    <ul style="list-style: none; margin-top: 16px;">
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px;">
+                            <span style="color: var(--accent);">•</span>
+                            <span style="font-size: 14px;">完整的数据集归档（25K+ 样本）</span>
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px;">
+                            <span style="color: var(--accent);">•</span>
+                            <span style="font-size: 14px;">分层抽样数据集重分割工具</span>
+                        </li>
+                        <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px;">
+                            <span style="color: var(--accent);">•</span>
+                            <span style="font-size: 14px;">类别均衡自动补充少数类</span>
+                        </li>
+                        <li style="padding: 8px 0; display: flex; gap: 12px;">
+                            <span style="color: var(--accent);">•</span>
+                            <span style="font-size: 14px;">模块化设计，即插即用</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">10 / 12</div>
+    </section>
+
+    <!-- Slide 11: Key Innovations -->
+    <section class="slide" id="slide-11">
+        <span class="slide-tag secondary">Innovation</span>
+        <h2>核心创新点</h2>
+        <div class="grid-2" style="margin-top: 50px;">
+            <div class="card" style="background: linear-gradient(135deg, rgba(0, 212, 170, 0.05) 0%, rgba(0, 212, 170, 0.15) 100%); border-color: var(--primary);">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6M12 17v6"/>
+                    </svg>
+                </div>
+                <h4>VLM 驱动的数据增强</h4>
+                <p>首次将 VLM（qwen3.5:27b）引入风机叶片缺陷数据集构建，实现自动化的结构化描述生成，解决传统方法依赖人工标注的瓶颈。</p>
+            </div>
+            <div class="card" style="background: linear-gradient(135deg, rgba(255, 107, 53, 0.05) 0%, rgba(255, 107, 53, 0.15) 100%); border-color: var(--accent);">
+                <div class="card-icon" style="background: var(--gradient-2);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                    </svg>
+                </div>
+                <h4>统一 LoRA 训练框架</h4>
+                <p>将单阶段和两阶段训练统一为单一入口，支持自动检测数据源选择最佳训练模式，大幅降低使用门槛。</p>
+            </div>
+            <div class="card" style="background: linear-gradient(135deg, rgba(10, 132, 255, 0.05) 0%, rgba(10, 132, 255, 0.15) 100%); border-color: var(--secondary);">
+                <div class="card-icon" style="background: var(--gradient-3);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M9 9h6M9 15h6"/>
+                    </svg>
+                </div>
+                <h4>4 种生成模式矩阵</h4>
+                <p>txt2img/img2img × SD/AnomalyAny 组合，覆盖从快速批量生成到精确局部控制的全部场景需求。</p>
+            </div>
+            <div class="card" style="background: linear-gradient(135deg, rgba(147, 51, 234, 0.05) 0%, rgba(147, 51, 234, 0.15) 100%); border-color: #9333EA;">
+                <div class="card-icon" style="background: linear-gradient(135deg, #9333EA 0%, #667eea 100%);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                </div>
+                <h4>端到端闭环系统</h4>
+                <p>从缺陷生成到检测训练形成完整闭环，生成数据直接用于训练 YOLOv11-seg，实现像素级缺陷检测。</p>
+            </div>
+        </div>
+        <div class="slide-number">11 / 12</div>
+    </section>
+
+    <!-- Slide 12: Conclusion -->
+    <section class="slide title-slide" id="slide-12">
+        <span class="slide-tag">Conclusion</span>
+        <h1 style="font-size: 48px;">总结与展望</h1>
+        <div class="conclusion-points" style="max-width: 1000px;">
+            <div class="conclusion-item">
+                <h4>已完成</h4>
+                <p>• VLM 增强的高质量数据集生成<br>• 统一的 LoRA 训练框架<br>• 4 种缺陷生成模式<br>• YOLOv11-seg 实例分割训练</p>
+            </div>
+            <div class="conclusion-item">
+                <h4>下一步</h4>
+                <p>• 生成质量量化评估<br>• 下游检测任务性能验证<br>• 跨数据集泛化能力测试<br>• 工程部署优化</p>
+            </div>
+        </div>
+        <div style="margin-top: 60px; text-align: center;">
+            <p style="font-size: 24px; color: var(--text); margin-bottom: 20px;">感谢聆听</p>
+            <div class="tech-stack" style="justify-content: center;">
+                <span class="tech-item">AnomalyAny</span>
+                <span class="tech-item">Stable Diffusion</span>
+                <span class="tech-item">VLM</span>
+                <span class="tech-item">LoRA</span>
+                <span class="tech-item">YOLOv11</span>
+            </div>
+        </div>
+        <div class="slide-number">12 / 12</div>
+    </section>
+
+    <!-- Navigation Dots -->
+    <nav class="nav-dots">
+        <div class="nav-dot active" onclick="scrollToSlide(1)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(2)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(3)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(4)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(5)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(6)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(7)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(8)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(9)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(10)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(11)"></div>
+        <div class="nav-dot" onclick="scrollToSlide(12)"></div>
+    </nav>
+
+    <script>
+        function scrollToSlide(num) {
+            document.getElementById('slide-' + num).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Update active dot on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const slideNum = entry.target.id.replace('slide-', '');
+                    document.querySelectorAll('.nav-dot').forEach((dot, i) => {
+                        dot.classList.toggle('active', i + 1 === parseInt(slideNum));
+                    });
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('.slide').forEach(slide => observer.observe(slide));
+    </script>
+</body>
+</html>
