@@ -215,6 +215,41 @@ Refer to the provided Jupyter notebooks for complete examples and results:
 ![Example Output](imgs/example.png)
 
 
+---
+
+## 🌬️ Wind Turbine Blade Defect Pipeline
+
+This repository extends AnomalyAny with a complete engineering pipeline for **wind turbine blade defect generation and detection**. See [scripts/README.md](../scripts/README.md) for full documentation.
+
+### Key Extensions
+
+- **VLM-Enhanced Data Preparation** (`scripts/prepare_hq_datasets.py`): Uses Ollama VLM (qwen3.5:27b) to generate structured captions with Location/Size/Visual Features/Severity for 28 defect types
+- **Unified LoRA Training** (`scripts/train_lora_unified.py`): Single entry point supporting auto/single/two-stage modes
+- **Defect Generation** (`scripts/generate_defects.py`): 4 mode combinations (txt2img/img2img × SD/AnomalyAny)
+- **YOLOv11-seg Detection** (`train_yolo_stable.py`): Instance segmentation for pixel-level defect detection
+
+### Quick Start
+
+```bash
+# 1. Prepare dataset with VLM captions
+python scripts/prepare_hq_datasets.py \
+    --dataset /path/to/yolo_dataset \
+    --label-map "0:DQ,1:TL,2:LW" \
+    --output-dir ./hq_output --use-vlm
+
+# 2. Train LoRA (auto mode)
+python scripts/train_lora_unified.py --data-dir ./hq_output --mode auto
+
+# 3. Generate defects
+python scripts/generate_defects.py \
+    --mode txt2img --pipe anomalyany \
+    --prompt "wind turbine blade with paint peeling" \
+    --lora-path ./outputs/lora_unified/two_stage/stage2/final \
+    --output ./output.png
+```
+
+---
+
 ## 🛠️ Todo List
 - [ ] Colab demo.
 - [ ] HuggingFace demo.
