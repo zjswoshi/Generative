@@ -1,24 +1,28 @@
-from ultralytics import YOLO
+import os
+
 import torch
+
+from ultralytics import YOLO
 
 
 def main():
-    # data_yaml = "/home/cn/yolo/AnomalyAny/fengjiyepian_506_v5/fengjiyepian_506_v5/dataset.yaml"
-    # data_yaml = "/home/cn/yolo/AnomalyAny/fengjiyepian_506_v5/fengjiyepian_506_v5_enhance/dataset.yaml"
-    data_yaml = "/home/cn/yolo/AnomalyAny/fengjiyepian_506_v5/fengjiyepian_506_v5_8classes_enhance/dataset.yaml"
-    # data_yaml = "/home/cn/yolo/AnomalyAny/fengjiyepian_506_v5/fengjiyepian_506_v5_8classes/dataset.yaml"
-    # data_yaml = "/home/cn/yolo/AnomalyAny/fengjiyepian260310_v17/fengjiyepian_260310_v17.yaml"
-    
+    # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/standard/fengjiyepian_506_v5/dataset.yaml"
+    data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/enhanced/fengjiyepian_506_v5_enhance/dataset.yaml"
+    # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/standard/fengjiyepian_506_v5_6classes/dataset.yaml"
+    # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/enhanced/fengjiyepian_506_v5_6classes_enhance/dataset.yaml"
+    # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/standard/fengjiyepian260310_v17/fengjiyepian_260310_v17.yaml"
+    # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/enhanced/offshore wind turbine blade.v3i.yolov11_enhance/data.yaml"
+    # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/standard/offshore wind turbine blade.v3i.yolov11/data.yaml"
     model = YOLO("yolo11n-seg.pt")
     
     results = model.train(
         data=data_yaml,
         epochs=150,
         imgsz=640,
-        batch=16,
-        device="cuda:1" if torch.cuda.is_available() else "cpu",
+        batch=32,
+        device="cuda" if torch.cuda.is_available() else "cpu",
         project="runs/segment",
-        name="fengjiyepian_506_v5_8classes_enhance",
+        name="fengjiyepian_506_v5_enhance_clean",
         exist_ok=True,
         pretrained=True,
         optimizer="SGD",
