@@ -47,6 +47,13 @@
    - 有full_images → 两阶段
    - 只有patches → 单阶段
 
+4. 双LoRA并行模式（--mode dual-lora）：
+   - Background LoRA：仅用正常图片训练，学习载体外观
+   - Defect LoRA：仅用缺陷图片训练，学习缺陷特征
+   - 两个LoRA完全独立训练，推理时加权融合
+   - 优势：解耦背景和缺陷，避免灾难性遗忘
+   - 推理时：W = W_base + α×LoRA_defect + β×LoRA_bg
+
 【使用方法】
 # 自动检测模式（推荐）
 python train_lora_unified.py \
@@ -71,6 +78,13 @@ python train_lora_unified.py \
     --data-dirs ./hq_fengji ./hq_offshore ./hq_nordtank \
     --mode two-stage
 
+# 双LoRA并行训练（Defect-LoRA风格）
+python train_lora_unified.py \
+    --data-dir ./hq_output \
+    --mode dual-lora \
+    --bg-steps 2000 \
+    --defect-steps 3000
+
 【输出】
 outputs/
 ├── lora_single/              # 单阶段输出
@@ -82,6 +96,14 @@ outputs/
     │   ├── checkpoint-500/
     │   └── final/
     └── stage2/
+        ├── checkpoint-500/
+        ├── checkpoint-1000/
+        └── final/
+└── lora_dual/                # 双LoRA并行输出
+    ├── background/           # 背景LoRA
+    │   ├── checkpoint-500/
+    │   └── final/
+    └── defect/               # 缺陷LoRA
         ├── checkpoint-500/
         ├── checkpoint-1000/
         └── final/
@@ -522,6 +544,142 @@ def train_two_stage(args):
     return stage2_path
 
 
+def train_dual_lora(args):
+    """
+    双LoRA并行训练（Defect-LoRA风格）
+    
+    Background LoRA：仅用正常图片训练，学习载体外观
+    Defect LoRA：仅用缺陷图片训练，学习缺陷特征
+    两个LoRA完全独立，推理时加权融合
+    """
+    print("\n" + "=" * 70)
+    print("双LoRA并行训练 - 背景 + 缺陷（独立训练）")
+    print("=" * 70)
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    bg_dir = os.path.join(args.output_dir, "background")
+    defect_dir = os.path.join(args.output_dir, "defect")
+
+    print("\n" + "#" * 70)
+    print("# Background LoRA: 学习载体外观（仅正常图片）")
+    print("#" * 70)
+
+    dataset_bg = UnifiedBladeDataset(
+        args.data_dir,
+        mode="normal_only",
+        size=args.resolution,
+        use_detailed_caption=args.use_detailed_caption
+    )
+
+    if len(dataset_bg) == 0:
+        dataset_bg = UnifiedBladeDataset(
+            args.data_dir,
+            mode="full_images",
+            size=args.resolution,
+            use_detailed_caption=args.use_detailed_caption
+        )
+        print("  未找到normal目录，使用full_images模式")
+
+    if len(dataset_bg) == 0:
+        print("  错误: 未找到正常图片！请确保有 normal/ 或 full_images/ 目录")
+        return None, None
+
+    model_components_bg = load_model_components(args.model_path, device)
+    unet_bg = model_components_bg['unet']
+
+    lora_config_bg = LoraConfig(
+        r=args.lora_rank,
+        lora_alpha=args.lora_alpha,
+        target_modules=["to_q", "to_k", "to_v", "to_out.0"],
+        bias="none",
+    )
+    unet_bg = get_peft_model(unet_bg, lora_config_bg)
+    unet_bg.print_trainable_parameters()
+
+    bg_args = argparse.Namespace(
+        learning_rate=args.bg_lr,
+        max_train_steps=args.bg_steps,
+        train_batch_size=args.train_batch_size,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+    )
+
+    bg_path = train_model(
+        unet=unet_bg,
+        dataset=dataset_bg,
+        model_components=model_components_bg,
+        args=bg_args,
+        stage_name="Background-LoRA",
+        output_dir=bg_dir
+    )
+
+    del unet_bg, model_components_bg
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    print("\n" + "#" * 70)
+    print("# Defect LoRA: 学习缺陷特征（仅缺陷图片）")
+    print("#" * 70)
+
+    dataset_defect = UnifiedBladeDataset(
+        args.data_dir,
+        mode="defect_only",
+        size=256,
+        use_detailed_caption=args.use_detailed_caption
+    )
+
+    if len(dataset_defect) == 0:
+        dataset_defect = UnifiedBladeDataset(
+            args.data_dir,
+            mode="patches",
+            size=256,
+            use_detailed_caption=args.use_detailed_caption
+        )
+        print("  未找到defect目录，使用patches模式")
+
+    if len(dataset_defect) == 0:
+        print("  错误: 未找到缺陷图片！请确保有 defect/ 或 patches/ 目录")
+        return bg_path, None
+
+    model_components_def = load_model_components(args.model_path, device)
+    unet_def = model_components_def['unet']
+
+    lora_config_def = LoraConfig(
+        r=args.lora_rank,
+        lora_alpha=args.lora_alpha,
+        target_modules=["to_q", "to_k", "to_v", "to_out.0"],
+        bias="none",
+    )
+    unet_def = get_peft_model(unet_def, lora_config_def)
+    unet_def.print_trainable_parameters()
+
+    defect_args = argparse.Namespace(
+        learning_rate=args.defect_lr,
+        max_train_steps=args.defect_steps,
+        train_batch_size=args.train_batch_size,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+    )
+
+    defect_path = train_model(
+        unet=unet_def,
+        dataset=dataset_defect,
+        model_components=model_components_def,
+        args=defect_args,
+        stage_name="Defect-LoRA",
+        output_dir=defect_dir
+    )
+
+    print("\n" + "=" * 70)
+    print("双LoRA训练完成!")
+    print(f"  Background LoRA: {bg_path}")
+    print(f"  Defect LoRA: {defect_path}")
+    print("  推理时使用: --lora-bg <bg_path> --lora-defect <defect_path>")
+    print("  可选参数: --alpha 0.7 --beta 1.0")
+    print("=" * 70)
+
+    return bg_path, defect_path
+
+
 def load_model_components(model_path, device):
     """加载SD模型组件"""
     noise_scheduler = DDPMScheduler.from_pretrained(model_path, subfolder="scheduler")
@@ -712,8 +870,8 @@ def main():
     parser.add_argument("--output-dir", type=str, default=DEFAULT_OUTPUT,
                         help="输出目录")
     
-    parser.add_argument("--mode", type=str, default="auto", choices=["auto", "single", "two-stage"],
-                        help="训练模式: auto/single/two-stage")
+    parser.add_argument("--mode", type=str, default="auto", choices=["auto", "single", "two-stage", "dual-lora"],
+                        help="训练模式: auto/single/two-stage/dual-lora")
     parser.add_argument("--resolution", type=int, default=512,
                         help="图片分辨率")
     parser.add_argument("--use-detailed-caption", action="store_true", default=True,
@@ -743,6 +901,15 @@ def main():
                         help="单阶段训练步数")
     parser.add_argument("--learning-rate", type=float, default=1e-4,
                         help="单阶段学习率")
+
+    parser.add_argument("--bg-steps", type=int, default=2000,
+                        help="双LoRA模式-背景LoRA训练步数")
+    parser.add_argument("--bg-lr", type=float, default=1e-4,
+                        help="双LoRA模式-背景LoRA学习率")
+    parser.add_argument("--defect-steps", type=int, default=3000,
+                        help="双LoRA模式-缺陷LoRA训练步数")
+    parser.add_argument("--defect-lr", type=float, default=1e-4,
+                        help="双LoRA模式-缺陷LoRA学习率")
     
     args = parser.parse_args()
     
@@ -826,6 +993,26 @@ def main():
         )
         
         lora_path = train_two_stage(args_two)
+
+    elif training_mode == "dual-lora":
+        args_dual = argparse.Namespace(
+            model_path=args.model_path,
+            output_dir=os.path.join(args.output_dir, "dual"),
+            resolution=args.resolution,
+            train_batch_size=args.train_batch_size,
+            gradient_accumulation_steps=args.gradient_accumulation_steps,
+            lora_rank=args.lora_rank,
+            lora_alpha=args.lora_alpha,
+            bg_steps=args.bg_steps,
+            bg_lr=args.bg_lr,
+            defect_steps=args.defect_steps,
+            defect_lr=args.defect_lr,
+            seed=args.seed,
+            data_dir=args.data_dir,
+            use_detailed_caption=args.use_detailed_caption,
+        )
+
+        bg_path, defect_path = train_dual_lora(args_dual)
     
     print("\n" + "=" * 70)
     print("训练完成!")

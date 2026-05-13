@@ -108,6 +108,7 @@ AnomalyAny管道:
 
 import argparse
 import sys
+import os
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -121,6 +122,77 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from diffusers import StableDiffusionInpaintPipeline, PNDMScheduler
 from peft import PeftModel
+
+
+def load_dual_lora_pipeline(model_path, lora_bg_path=None, lora_defect_path=None,
+                            alpha=0.7, beta=1.0, pipe_type="sd", device="cuda"):
+    """
+    加载双LoRA加权融合Pipeline（Defect-LoRA风格）
+    
+    W = W_base + alpha * W_defect + beta * W_bg
+    
+    参数:
+        model_path: SD模型路径
+        lora_bg_path: 背景LoRA权重路径
+        lora_defect_path: 缺陷LoRA权重路径
+        alpha: 缺陷LoRA权重（控制缺陷强度）
+        beta: 背景LoRA权重（控制背景保真度）
+        pipe_type: 管道类型 "sd" 或 "anomalyany"
+        device: 设备
+    """
+    from safetensors.torch import load_file, save_file
+    import tempfile
+    
+    print(f"加载双LoRA融合模型 (α={alpha}, β={beta}):")
+    print(f"  背景LoRA: {lora_bg_path}")
+    print(f"  缺陷LoRA: {lora_defect_path}")
+    
+    if lora_bg_path and lora_defect_path:
+        bg_path = Path(lora_bg_path)
+        defect_path = Path(lora_defect_path)
+        
+        bg_file = bg_path / "adapter_model.safetensors" if bg_path.is_dir() else bg_path
+        defect_file = defect_path / "adapter_model.safetensors" if defect_path.is_dir() else defect_path
+        
+        bg_state = load_file(str(bg_file))
+        defect_state = load_file(str(defect_file))
+        
+        merged_state = {}
+        all_keys = set(bg_state.keys()) | set(defect_state.keys())
+        
+        for key in all_keys:
+            bg_val = bg_state.get(key, torch.zeros_like(defect_state.get(key, torch.zeros(1))))
+            defect_val = defect_state.get(key, torch.zeros_like(bg_state.get(key, torch.zeros(1))))
+            
+            if key in bg_state and key in defect_state:
+                merged_state[key] = beta * bg_val + alpha * defect_val
+            elif key in bg_state:
+                merged_state[key] = beta * bg_val
+            else:
+                merged_state[key] = alpha * defect_val
+        
+        bg_config = Path(lora_bg_path) / "adapter_config.json" if Path(lora_bg_path).is_dir() else None
+        merged_dir = tempfile.mkdtemp(prefix="dual_lora_")
+        
+        save_file(merged_state, os.path.join(merged_dir, "adapter_model.safetensors"))
+        
+        if bg_config and bg_config.exists():
+            import shutil
+            shutil.copy(str(bg_config), os.path.join(merged_dir, "adapter_config.json"))
+        
+        print(f"  融合权重已保存至临时目录: {merged_dir}")
+        lora_path = merged_dir
+    elif lora_bg_path:
+        lora_path = lora_bg_path
+    elif lora_defect_path:
+        lora_path = lora_defect_path
+    else:
+        lora_path = None
+    
+    if pipe_type == "sd":
+        return load_sd_pipeline(model_path, lora_path, device)
+    else:
+        return load_anomalyany_pipeline(model_path, lora_path, device)
 
 
 def load_sd_pipeline(model_path, lora_path=None, device="cuda"):
@@ -397,6 +469,14 @@ def main():
                         help="SD模型路径")
     parser.add_argument("--lora-path", type=str, default=None,
                         help="LoRA权重路径（可选）")
+    parser.add_argument("--lora-bg", type=str, default=None,
+                        help="背景LoRA权重路径（双LoRA模式）")
+    parser.add_argument("--lora-defect", type=str, default=None,
+                        help="缺陷LoRA权重路径（双LoRA模式）")
+    parser.add_argument("--alpha", type=float, default=0.7,
+                        help="缺陷LoRA权重（控制缺陷强度，默认0.7）")
+    parser.add_argument("--beta", type=float, default=1.0,
+                        help="背景LoRA权重（控制背景保真度，默认1.0）")
     
     # txt2img参数
     parser.add_argument("--prompt", type=str,
@@ -430,7 +510,17 @@ def main():
     # 加载模型
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    if args.pipe == "sd":
+    if args.lora_bg or args.lora_defect:
+        pipe = load_dual_lora_pipeline(
+            args.model_path,
+            lora_bg_path=args.lora_bg,
+            lora_defect_path=args.lora_defect,
+            alpha=args.alpha,
+            beta=args.beta,
+            pipe_type=args.pipe,
+            device=device
+        )
+    elif args.pipe == "sd":
         pipe = load_sd_pipeline(args.model_path, args.lora_path, device)
     else:
         pipe = load_anomalyany_pipeline(args.model_path, args.lora_path, device)
