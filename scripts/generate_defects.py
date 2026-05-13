@@ -278,20 +278,22 @@ def get_token_indices(prompt, tokenizer):
     }
     
     defect_keywords = [
-        'damage', 'crack', 'erosion', 'contamination', 'dirt', 'scratch',
-        'hole', 'burn', 'peeling', 'fracture', 'debris', 'imperfection',
-        'coating', 'delamination', 'adhesive', 'groove', 'paint', 'surface'
+        'crack', 'damage', 'contamination', 'dirt', 'scratch', 'hole', 'burn',
+        'peeling', 'fracture', 'debris', 'imperfection', 'delamination',
+        'erosion', 'corrosion', 'defect', 'stain', 'scar', 'gap', 'split',
+        'tear', 'break', 'corruption', 'fault', 'flaw', 'deterioration'
     ]
     
     indices = []
     for idx, word in token_idx_to_word.items():
         if any(kw in word for kw in defect_keywords):
             indices.append(idx)
-    
+
     if not indices:
         indices = [len(tokens) - 2]
-    
-    return indices
+
+    # 只返回最重要的一个关键词（第一个匹配的）
+    return [indices[0]] if indices else [len(tokens) - 2]
 
 
 def generate_txt2img_sd(pipe, prompt, seed, steps, guidance):
@@ -425,7 +427,11 @@ def generate_img2img_anomalyany(pipe, image, mask, prompt, seed, steps, guidance
         mask_image=mask,
     )
     
-    result = outputs[0] if isinstance(outputs, (tuple, list)) else outputs.images[0]
+    result = outputs[0] if isinstance(outputs, (tuple, list)) else outputs
+    if hasattr(result, 'images'):
+        result = result.images[0]
+    elif isinstance(result, list):
+        result = result[0]
     
     # 恢复原始大小
     result = result.resize(original_size, Image.Resampling.LANCZOS)

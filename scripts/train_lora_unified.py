@@ -38,7 +38,7 @@
 
 2. 两阶段训练（--mode two-stage）：
    - Stage 1：full_images + metadata.text → 学习叶片外观
-   - Stage 2：patches + metadata.text → 学习缺陷特征
+   - Stage 2：patches + metadata.patch_text → 学习缺陷特征
    - 适用：txt2img直接生成任务
    - 输出：统一的LoRA（叶片+缺陷知识）
 
@@ -70,7 +70,7 @@ python train_lora_unified.py \
 python train_lora_unified.py \
     --data-dir ./hq_output \
     --mode two-stage \
-    --stage1-steps 2000 \
+    --stage1-steps 4000 \
     --stage2-steps 3000
 
 # 组合多个数据集
@@ -287,11 +287,17 @@ class UnifiedBladeDataset(Dataset):
     
     def _get_caption(self, sample):
         """获取caption"""
-        if self.use_detailed_caption and sample['rel_path'] in self.metadata:
-            text = self.metadata[sample['rel_path']].get('text', '')
-            if text:
-                return text
-        
+        if sample['rel_path'] in self.metadata:
+            data = self.metadata[sample['rel_path']]
+            # Stage 2 patch模式：使用patch_text（纯视觉特征，无位置信息）
+            if sample['type'] == 'patch' and 'patch_text' in data and self.use_detailed_caption:
+                return data['patch_text']
+            # Stage 1 full_image模式：使用text（包含位置信息）
+            if self.use_detailed_caption:
+                text = data.get('text', '')
+                if text:
+                    return text
+
         type_map = {
             'full_image': 'wind turbine blade with defect',
             'patch': 'damaged wind turbine blade surface with defect',
@@ -365,7 +371,12 @@ class CombinedUnifiedDataset(Dataset):
         
         if self.use_detailed_caption:
             key = f"{sample['data_dir']}/{sample['rel_path']}"
-            caption = self.all_metadata.get(key, {}).get('text', '')
+            metadata_entry = self.all_metadata.get(key, {})
+            # Stage 2 patch模式：使用patch_text（纯视觉特征，无位置信息）
+            if sample['type'] == 'patches' and 'patch_text' in metadata_entry:
+                caption = metadata_entry['patch_text']
+            else:
+                caption = metadata_entry.get('text', '')
             if not caption:
                 caption = self._get_default_caption(sample['type'])
         else:
@@ -696,6 +707,8 @@ def load_model_components(model_path, device):
     unet.to(device)
     
     use_amp = torch.cuda.is_available()
+    # 暂时禁用AMP以避免GradScaler错误
+    use_amp = False
     if use_amp:
         vae = vae.to(dtype=torch.float16)
         text_encoder = text_encoder.to(dtype=torch.float16)
@@ -792,21 +805,23 @@ def train_model(unet, dataset, model_components, args, stage_name, output_dir):
                 0, noise_scheduler.config.num_train_timesteps, (bsz,), device=device
             )
             noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
-            
+
+            # 计算预测 (使用autocast)
             with autocast(enabled=use_amp):
                 model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
-                
-                if noise_scheduler.config.prediction_type == "epsilon":
-                    target = noise
-                elif noise_scheduler.config.prediction_type == "v_prediction":
-                    target = noise_scheduler.get_velocity(latents, noise, timesteps)
-                else:
-                    target = latents
-                
-                loss = torch.nn.functional.mse_loss(
-                    model_pred.float(), target.float(), reduction="mean"
-                )
-            
+
+            # 计算损失 (确保float32)
+            if noise_scheduler.config.prediction_type == "epsilon":
+                target = noise
+            elif noise_scheduler.config.prediction_type == "v_prediction":
+                target = noise_scheduler.get_velocity(latents, noise, timesteps)
+            else:
+                target = latents
+
+            loss = torch.nn.functional.mse_loss(
+                model_pred.float(), target.float(), reduction="mean"
+            )
+
             scaler.scale(loss).backward()
             
             if (global_step + 1) % args.gradient_accumulation_steps == 0:
@@ -933,7 +948,7 @@ def main():
     
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
-        gpu_mem = torch.cuda.get_device_properties(0).total_memory() / 1024**3
+        gpu_mem = torch.cuda.get_device_properties(0).total_memory / 1024**3
         print(f"GPU: {gpu_name} ({gpu_mem:.1f} GB)")
     
     print("=" * 70)
@@ -960,6 +975,7 @@ def main():
         
         args_single = argparse.Namespace(
             model_path=args.model_path,
+            data_dir=args.data_dir,
             output_dir=os.path.join(args.output_dir, "single"),
             resolution=args.resolution,
             train_batch_size=args.train_batch_size,

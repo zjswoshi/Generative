@@ -7,9 +7,9 @@ from ultralytics import YOLO
 
 def main():
     # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/standard/fengjiyepian_506_v5/dataset.yaml"
-    data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/enhanced/fengjiyepian_506_v5_enhance/dataset.yaml"
+    # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/enhanced/fengjiyepian_506_v5_enhance/dataset.yaml"
     # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/standard/fengjiyepian_506_v5_6classes/dataset.yaml"
-    # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/enhanced/fengjiyepian_506_v5_6classes_enhance/dataset.yaml"
+    data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/enhanced/fengjiyepian_506_v5_6classes_enhance/dataset.yaml"
     # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/standard/fengjiyepian260310_v17/fengjiyepian_260310_v17.yaml"
     # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/enhanced/offshore wind turbine blade.v3i.yolov11_enhance/data.yaml"
     # data_yaml = "/home/cn/yolo/AnomalyAny/dataset_archive/standard/offshore wind turbine blade.v3i.yolov11/data.yaml"
@@ -22,7 +22,7 @@ def main():
         batch=32,
         device="cuda" if torch.cuda.is_available() else "cpu",
         project="runs/segment",
-        name="fengjiyepian_506_v5_enhance_clean",
+        name="fengjiyepian_506_v5_6classes_enhance_cleanv2",
         exist_ok=True,
         pretrained=True,
         optimizer="SGD",

@@ -58,6 +58,7 @@ outputs/
 !train/*.jpg
 !train/*.png
 !train/labels/
+*.jsonl
 
 # Images
 *.gif
