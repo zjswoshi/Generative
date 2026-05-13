@@ -382,17 +382,17 @@ Output JSON only, no other content. Use English for all field values."""
             
             response = requests.post(
                 self.api_url,
-                json={{
+                json={
                     "model": self.model_name,
                     "prompt": prompt,
                     "images": [full_base64, patch_base64],
                     "stream": False,
                     "think": False,
-                    "options": {{
+                    "options": {
                         "temperature": 0.3,
                         "num_predict": 300
-                    }}
-                }},
+                    }
+                },
                 timeout=180
             )
             
@@ -558,6 +558,17 @@ Output JSON only, no other content."""
             pass
         return self._default_defect_info(defect_type)
     
+    def _parse_comprehensive_response(self, response: str, defect_type: str) -> dict:
+        """解析VLM综合分析响应"""
+        try:
+            import re
+            json_match = re.search(r'\{[^}]+\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+        except:
+            pass
+        return self._default_comprehensive_info(defect_type)
+    
     def _parse_location_response(self, response: str) -> dict:
         """解析VLM对位置描述的响应"""
         try:
@@ -576,6 +587,17 @@ Output JSON only, no other content."""
             'visual_features': desc,
             'size': 'moderate (5-15cm)',
             'severity': 'moderate'
+        }
+
+    def _default_comprehensive_info(self, defect_type: str) -> dict:
+        """默认综合缺陷信息"""
+        desc = BLADE_DEFECT_INFO.get(defect_type, f'{defect_type} damage')
+        return {
+            'location': 'blade surface',
+            'size': 'moderate (5-15cm)',
+            'visual_features': desc,
+            'severity': 'moderate',
+            'context': 'wind turbine blade surface area'
         }
     
     def _default_location_info(self) -> dict:

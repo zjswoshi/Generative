@@ -53,7 +53,7 @@ IndustrialDefectGeneration/
 ├── ═══ 工业缺陷生成管线 ═══
 │   └── scripts/
 │       ├── prepare_hq_datasets.py               VLM增强的高质量数据集生成
-│       ├── train_lora_unified.py               统一LoRA训练（单阶段/两阶段/自动）
+│       ├── train_lora_unified.py               统一LoRA训练（单阶段/两阶段/自动/双LoRA）
 │       ├── balance_dataset.py                   类别均衡
 │       └── generate_defects.py                  通用缺陷生成（4种模式）
 │
@@ -134,7 +134,7 @@ python scripts/prepare_hq_datasets.py \
     --use-vlm
 ```
 
-使用 `--use-vlm` 启用 VLM（Ollama qwen3.5:27b）自动生成包含 Location/Size/Visual Features/Severity 的结构化 caption。
+使用 `--use-vlm` 启用 VLM（Ollama qwen3.5:27b）自动生成包含 Location/Size/Visual Features/Severity 的结构化 caption。不启用时使用内置的28种缺陷类型默认描述。
 
 ### 2. LoRA 训练
 
