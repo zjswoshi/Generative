@@ -296,12 +296,13 @@ def get_token_indices(prompt, tokenizer):
     return [indices[0]] if indices else [len(tokens) - 2]
 
 
-def generate_txt2img_sd(pipe, prompt, seed, steps, guidance):
+def generate_txt2img_sd(pipe, prompt, seed, steps, guidance, negative_prompt=None):
     """SD txt2img生成"""
     generator = torch.Generator('cuda').manual_seed(seed)
     
     result = pipe(
         prompt=prompt,
+        negative_prompt=negative_prompt,
         generator=generator,
         num_inference_steps=steps,
         guidance_scale=guidance,
@@ -310,12 +311,13 @@ def generate_txt2img_sd(pipe, prompt, seed, steps, guidance):
     return result.images[0]
 
 
-def generate_img2img_sd(pipe, image, mask, prompt, seed, steps, guidance):
+def generate_img2img_sd(pipe, image, mask, prompt, seed, steps, guidance, negative_prompt=None):
     """SD img2img生成"""
     generator = torch.Generator('cuda').manual_seed(seed)
     
     result = pipe(
         prompt=prompt,
+        negative_prompt=negative_prompt,
         image=image,
         mask_image=mask,
         generator=generator,
