@@ -1,0 +1,974 @@
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;工作周总结与研究进展&lt;/title&gt;
+    &lt;style&gt;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Noto Serif", "Times New Roman", serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            padding: 60px 80px;
+            background: white;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide-header {
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        .slide-title {
+            font-size: 2.5rem;
+            color: #1e3a5f;
+            font-weight: 700;
+        }
+
+        .slide-subtitle {
+            font-size: 1.2rem;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        .slide-content {
+            flex: 1;
+            font-size: 1.3rem;
+            line-height: 1.8;
+            color: #1e293b;
+        }
+
+        .slide-content h2 {
+            font-size: 1.6rem;
+            color: #1e40af;
+            margin: 30px 0 15px 0;
+            border-left: 5px solid #3b82f6;
+            padding-left: 15px;
+        }
+
+        .slide-content ul, .slide-content ol {
+            margin-left: 30px;
+            margin-top: 15px;
+        }
+
+        .slide-content li {
+            margin: 10px 0;
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 1.1rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            padding: 12px 25px;
+            background: #1e40af;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+        }
+
+        .nav-btn:hover {
+            background: #1e3a8a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+        }
+
+        .nav-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .cover-slide {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+            color: white;
+        }
+
+        .cover-slide .slide-title {
+            color: white;
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .cover-slide .slide-subtitle {
+            color: #cbd5e1;
+            font-size: 1.5rem;
+        }
+
+        .cover-info {
+            margin-top: 60px;
+            font-size: 1.2rem;
+            color: #e2e8f0;
+        }
+
+        .diagram-box {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 25px 0;
+        }
+
+        .code-ref {
+            background: #f1f5f9;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-family: "Courier New", monospace;
+            font-size: 0.95rem;
+            color: #475569;
+            margin: 10px 0;
+            display: inline-block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 1.1rem;
+        }
+
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            background: #1e40af;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        svg {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-left: 5px solid #3b82f6;
+            padding: 20px 25px;
+            margin: 25px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .highlight-box-red {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-left: 5px solid #ef4444;
+            padding: 20px 25px;
+            margin: 25px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .highlight-box-green {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            border-left: 5px solid #22c55e;
+            padding: 20px 25px;
+            margin: 25px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .qa-slide {
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .qa-slide .slide-title {
+            color: white;
+        }
+
+        .qa-slide .slide-content {
+            color: #e2e8f0;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class="presentation"&gt;
+        
+        &lt;!-- Slide 1: 封面 --&gt;
+        &lt;div class="slide active cover-slide"&gt;
+            &lt;div class="slide-title"&gt;工作周总结与研究进展&lt;/div&gt;
+            &lt;div class="slide-subtitle"&gt;Stable Diffusion 原理理解、问题分析与后续规划&lt;/div&gt;
+            &lt;div class="cover-info"&gt;
+                &lt;p&gt;&lt;strong&gt;汇报人：&lt;/strong&gt;[您的姓名]&lt;/p&gt;
+                &lt;p&gt;&lt;strong&gt;日期：&lt;/strong&gt;2026年5月18日&lt;/p&gt;
+                &lt;p style="margin-top: 20px;"&gt;项目：异常样本生成与人脸修复&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;1 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 2: 工作概述 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;工作概述&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;本周核心目标&lt;/h2&gt;
+                &lt;div class="two-col"&gt;
+                    &lt;div class="highlight-box"&gt;
+                        &lt;strong&gt;目标 1：&lt;/strong&gt;生成「人物玩手机」的真实数据
+                        &lt;ul&gt;
+                            &lt;li&gt;用于数据集补充&lt;/li&gt;
+                            &lt;li&gt;要求真实感强，无动漫风格&lt;/li&gt;
+                        &lt;/ul&gt;
+                    &lt;/div&gt;
+                    &lt;div class="highlight-box"&gt;
+                        &lt;strong&gt;目标 2：&lt;/strong&gt;解决人脸马赛克修复问题
+                        &lt;ul&gt;
+                            &lt;li&gt;约 70% 人脸被打马赛克&lt;/li&gt;
+                            &lt;li&gt;修复后保持真实感&lt;/li&gt;
+                        &lt;/ul&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;h2&gt;工作流程&lt;/h2&gt;
+                &lt;svg viewBox="0 0 800 150" xmlns="http://www.w3.org/2000/svg"&gt;
+                    &lt;g transform="translate(50, 20)"&gt;
+                        &lt;rect x="0" y="30" width="140" height="50" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="70" y="60" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;问题发现&lt;/text&gt;
+                        &lt;text x="70" y="80" text-anchor="middle" fill="#64748b" font-size="12"&gt;周一&lt;/text&gt;
+                        
+                        &lt;polygon points="145,55 175,45 175,65" fill="#3b82f6"/&gt;
+                        
+                        &lt;rect x="180" y="30" width="140" height="50" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="250" y="60" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;理论复盘&lt;/text&gt;
+                        &lt;text x="250" y="80" text-anchor="middle" fill="#64748b" font-size="12"&gt;周一-周二&lt;/text&gt;
+                        
+                        &lt;polygon points="325,55 355,45 355,65" fill="#3b82f6"/&gt;
+                        
+                        &lt;rect x="360" y="30" width="140" height="50" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="430" y="60" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;模型对比&lt;/text&gt;
+                        &lt;text x="430" y="80" text-anchor="middle" fill="#64748b" font-size="12"&gt;周五-周六&lt;/text&gt;
+                        
+                        &lt;polygon points="505,55 535,45 535,65" fill="#3b82f6"/&gt;
+                        
+                        &lt;rect x="540" y="30" width="140" height="50" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="610" y="60" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;系统实现&lt;/text&gt;
+                        &lt;text x="610" y="80" text-anchor="middle" fill="#64748b" font-size="12"&gt;周日&lt;/text&gt;
+                    &lt;/g&gt;
+                &lt;/svg&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;2 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 3: 问题发现 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;问题发现：LoRA 方案的局限性&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;初始方案设计&lt;/h2&gt;
+                &lt;svg viewBox="0 0 700 120" xmlns="http://www.w3.org/2000/svg"&gt;
+                    &lt;g transform="translate(30, 10)"&gt;
+                        &lt;rect x="0" y="20" width="160" height="40" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="6"/&gt;
+                        &lt;text x="80" y="45" text-anchor="middle" fill="#166534" font-weight="bold"&gt;开源数据集&lt;/text&gt;
+                        
+                        &lt;polygon points="165,40 195,30 195,50" fill="#22c55e"/&gt;
+                        
+                        &lt;rect x="200" y="20" width="160" height="40" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="6"/&gt;
+                        &lt;text x="280" y="45" text-anchor="middle" fill="#166534" font-weight="bold"&gt;SD2.1 LoRA&lt;/text&gt;
+                        
+                        &lt;polygon points="365,40 395,30 395,50" fill="#22c55e"/&gt;
+                        
+                        &lt;rect x="400" y="20" width="160" height="40" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="6"/&gt;
+                        &lt;text x="480" y="45" text-anchor="middle" fill="#166534" font-weight="bold"&gt;期望真实图片&lt;/text&gt;
+                    &lt;/g&gt;
+                &lt;/svg&gt;
+
+                &lt;h2&gt;实验结果&lt;/h2&gt;
+                &lt;div class="highlight-box-red"&gt;
+                    &lt;strong&gt;❌ 问题 1：&lt;/strong&gt;SD2.1 总是生成动漫风格图片
+                    &lt;ul&gt;
+                        &lt;li&gt;无论标准 SD 还是 AnomalyAny 都无法解决&lt;/li&gt;
+                        &lt;li&gt;动漫特征：大眼睛、简化面部结构、高饱和度&lt;/li&gt;
+                    &lt;/ul&gt;
+                &lt;/div&gt;
+
+                &lt;h2&gt;关键观察&lt;/h2&gt;
+                &lt;p&gt;无论怎么调整 prompt 或 CFG scale，SD2.1 的生成总是带有动漫风格特征。&lt;/p&gt;
+                &lt;div class="highlight-box"&gt;
+                    &lt;strong&gt;结论：&lt;/strong&gt;需要深入研究 SD 生成原理，理解为什么会有这个现象！
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;3 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 4: SD 整体架构 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;Stable Diffusion 整体架构&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;三大核心组件&lt;/h2&gt;
+                &lt;svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg"&gt;
+                    &lt;g transform="translate(30, 10)"&gt;
+                        &lt;!-- Text Encoder --&gt;
+                        &lt;rect x="0" y="0" width="160" height="50" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="80" y="30" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;Text Encoder&lt;/text&gt;
+                        &lt;text x="80" y="50" text-anchor="middle" fill="#64748b" font-size="11"&gt;CLIP ViT-L/14&lt;/text&gt;
+                        
+                        &lt;text x="20" y="80" fill="#475569"&gt;Text Prompt&lt;/text&gt;
+                        &lt;line x1="90" y1="55" x2="90" y2="65" stroke="#64748b"/&gt;
+                        &lt;polygon points="85,65 95,65 90,75" fill="#64748b"/&gt;
+                        
+                        &lt;!-- UNet --&gt;
+                        &lt;rect x="200" y="70" width="160" height="70" fill="#dbeafe" stroke="#1e40af" stroke-width="3" rx="8"/&gt;
+                        &lt;text x="280" y="100" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;UNet&lt;/text&gt;
+                        &lt;text x="280" y="120" text-anchor="middle" fill="#64748b" font-size="11"&gt;条件去噪网络&lt;/text&gt;
+                        
+                        &lt;line x1="165" y1="30" x2="195" y2="90" stroke="#3b82f6" stroke-width="2"/&gt;
+                        &lt;polygon points="188,82 198,92 188,102" fill="#3b82f6"/&gt;
+                        
+                        &lt;!-- Random Noise --&gt;
+                        &lt;text x="220" y="160" fill="#475569"&gt;Random Noise&lt;/text&gt;
+                        &lt;line x1="280" y1="145" x2="280" y2="155" stroke="#64748b"/&gt;
+                        &lt;polygon points="275,155 285,155 280,165" fill="#64748b"/&gt;
+                        
+                        &lt;!-- Scheduler --&gt;
+                        &lt;rect x="400" y="70" width="160" height="50" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="480" y="100" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;Scheduler&lt;/text&gt;
+                        
+                        &lt;line x1="365" y1="105" x2="395" y2="105" stroke="#3b82f6" stroke-width="2"/&gt;
+                        &lt;polygon points="385,98 395,105 385,112" fill="#3b82f6"/&gt;
+                        
+                        &lt;!-- VAE --&gt;
+                        &lt;rect x="580" y="70" width="100" height="70" fill="#dbeafe" stroke="#1e40af" stroke-width="3" rx="8"/&gt;
+                        &lt;text x="630" y="100" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;VAE&lt;/text&gt;
+                        &lt;text x="630" y="120" text-anchor="middle" fill="#64748b" font-size="11"&gt;Decoder&lt;/text&gt;
+                        
+                        &lt;line x1="565" y1="105" x2="575" y2="105" stroke="#3b82f6" stroke-width="2"/&gt;
+                        &lt;polygon points="565,98 575,105 565,112" fill="#3b82f6"/&gt;
+                        
+                        &lt;line x1="685" y1="105" x2="710" y2="105" stroke="#3b82f6" stroke-width="2"/&gt;
+                        &lt;polygon points="700,98 710,105 700,112" fill="#3b82f6"/&gt;
+                        &lt;text x="680" y="130" fill="#475569"&gt;Final Image&lt;/text&gt;
+                    &lt;/g&gt;
+                &lt;/svg&gt;
+
+                &lt;div class="highlight-box"&gt;
+                    &lt;strong&gt;关键问题：&lt;/strong&gt;UNet 从哪里来？→ 训练数据决定模型学到什么！
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;4 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 5: Text-to-Image Pipeline --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;Text-to-Image Pipeline&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;文字生图流程&lt;/h2&gt;
+                &lt;svg viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg"&gt;
+                    &lt;g transform="translate(30, 10)"&gt;
+                        &lt;rect x="0" y="40" width="100" height="60" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="50" y="70" text-anchor="middle" fill="#92400e" font-weight="bold"&gt;噪声 t=50&lt;/text&gt;
+                        
+                        &lt;polygon points="105,70 135,60 135,80" fill="#f59e0b"/&gt;
+                        
+                        &lt;rect x="140" y="40" width="120" height="60" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="200" y="70" text-anchor="middle" fill="#92400e" font-weight="bold"&gt;去噪 ...&lt;/text&gt;
+                        &lt;text x="200" y="90" text-anchor="middle" fill="#78350f" font-size="10"&gt;每步: UNet, CFG, Scheduler&lt;/text&gt;
+                        
+                        &lt;polygon points="265,70 295,60 295,80" fill="#f59e0b"/&gt;
+                        
+                        &lt;rect x="300" y="40" width="100" height="60" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="350" y="70" text-anchor="middle" fill="#166534" font-weight="bold"&gt;干净 t=0&lt;/text&gt;
+                        
+                        &lt;polygon points="405,70 435,60 435,80" fill="#22c55e"/&gt;
+                        
+                        &lt;rect x="440" y="40" width="120" height="60" fill="#bbf7d0" stroke="#16a34a" stroke-width="3" rx="8"/&gt;
+                        &lt;text x="500" y="70" text-anchor="middle" fill="#166534" font-weight="bold"&gt;VAE 解码&lt;/text&gt;
+                        &lt;text x="500" y="90" text-anchor="middle" fill="#15803d" font-size="10"&gt;最终图片&lt;/text&gt;
+                    &lt;/g&gt;
+                &lt;/svg&gt;
+
+                &lt;h2&gt;CFG（Classifier-Free Guidance）&lt;/h2&gt;
+                &lt;div class="diagram-box"&gt;
+                    &lt;div style="font-family: monospace; font-size: 1.2rem; text-align: center; color: #1e40af; font-weight: bold;"&gt;
+                        noise_pred = noise_pred_uncond + guidance_scale × (noise_pred_text - noise_pred_uncond)
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;5 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 6: Img2Img 与 Inpainting --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;Img2Img 与 Inpainting&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;Image-to-Image&lt;/h2&gt;
+                &lt;svg viewBox="0 0 700 130" xmlns="http://www.w3.org/2000/svg"&gt;
+                    &lt;g transform="translate(30, 10)"&gt;
+                        &lt;rect x="0" y="30" width="100" height="40" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" rx="6"/&gt;
+                        &lt;text x="50" y="55" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;原图&lt;/text&gt;
+                        
+                        &lt;polygon points="105,50 135,40 135,60" fill="#3b82f6"/&gt;
+                        
+                        &lt;rect x="140" y="30" width="100" height="40" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" rx="6"/&gt;
+                        &lt;text x="190" y="55" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;VAE&lt;/text&gt;
+                        
+                        &lt;polygon points="245,50 275,40 275,60" fill="#3b82f6"/&gt;
+                        
+                        &lt;rect x="280" y="30" width="100" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/&gt;
+                        &lt;text x="330" y="55" text-anchor="middle" fill="#92400e" font-weight="bold"&gt;加噪&lt;/text&gt;
+                        
+                        &lt;polygon points="385,50 415,40 415,60" fill="#f59e0b"/&gt;
+                        
+                        &lt;rect x="420" y="30" width="100" height="40" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="6"/&gt;
+                        &lt;text x="470" y="55" text-anchor="middle" fill="#92400e" font-weight="bold"&gt;去噪&lt;/text&gt;
+                        
+                        &lt;polygon points="525,50 555,40 555,60" fill="#22c55e"/&gt;
+                        
+                        &lt;rect x="560" y="30" width="100" height="40" fill="#bbf7d0" stroke="#16a34a" stroke-width="3" rx="6"/&gt;
+                        &lt;text x="610" y="55" text-anchor="middle" fill="#166534" font-weight="bold"&gt;结果&lt;/text&gt;
+                    &lt;/g&gt;
+                &lt;/svg&gt;
+                &lt;p style="text-align: center; color: #64748b;"&gt;关键参数：denoising_strength（加噪程度）&lt;/p&gt;
+
+                &lt;h2&gt;Inpainting：Masked Noise Blending&lt;/h2&gt;
+                &lt;div class="highlight-box"&gt;
+                    &lt;strong&gt;核心思想：&lt;/strong&gt;
+                    &lt;ul&gt;
+                        &lt;li&gt;保留原始图像的非 mask 区域&lt;/li&gt;
+                        &lt;li&gt;每步去噪后，同步给原始区域也加相同程度的噪声&lt;/li&gt;
+                        &lt;li&gt;混合：去噪结果 × mask + 原始加噪 × (1-mask)&lt;/li&gt;
+                    &lt;/ul&gt;
+                    &lt;p style="margin-top: 10px;"&gt;→ 边界更平滑！&lt;/p&gt;
+                &lt;/div&gt;
+                &lt;div class="code-ref"&gt;关键代码：clip_pipeline_attend_and_excite.py 第 1647-1649 行&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;6 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 7: AnomalyAny 位置对比 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;AnomalyAny：在 SD 流程中的位置&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;标准 SD vs AnomalyAny&lt;/h2&gt;
+                &lt;div class="two-col"&gt;
+                    &lt;div&gt;
+                        &lt;h3 style="color: #475569; margin-bottom: 15px;"&gt;标准 SD 去噪&lt;/h3&gt;
+                        &lt;svg viewBox="0 0 300 180" xmlns="http://www.w3.org/2000/svg"&gt;
+                            &lt;g transform="translate(20, 10)"&gt;
+                                &lt;rect x="40" y="20" width="180" height="35" fill="#eff6ff" stroke="#64748b" stroke-width="2" rx="6"/&gt;
+                                &lt;text x="130" y="42" text-anchor="middle" fill="#475569" font-weight="bold"&gt;1. UNet 预测噪声&lt;/text&gt;
+                                
+                                &lt;rect x="40" y="65" width="180" height="35" fill="#eff6ff" stroke="#64748b" stroke-width="2" rx="6"/&gt;
+                                &lt;text x="130" y="87" text-anchor="middle" fill="#475569" font-weight="bold"&gt;2. CFG&lt;/text&gt;
+                                
+                                &lt;rect x="40" y="110" width="180" height="35" fill="#eff6ff" stroke="#64748b" stroke-width="2" rx="6"/&gt;
+                                &lt;text x="130" y="132" text-anchor="middle" fill="#475569" font-weight="bold"&gt;3. Scheduler 更新&lt;/text&gt;
+                            &lt;/g&gt;
+                        &lt;/svg&gt;
+                    &lt;/div&gt;
+                    
+                    &lt;div&gt;
+                        &lt;h3 style="color: #1e40af; margin-bottom: 15px;"&gt;AnomalyAny 去噪&lt;/h3&gt;
+                        &lt;svg viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg"&gt;
+                            &lt;g transform="translate(20, 10)"&gt;
+                                &lt;rect x="30" y="10" width="200" height="45" fill="#dbeafe" stroke="#1e40af" stroke-width="3" rx="6"/&gt;
+                                &lt;text x="130" y="30" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;【插入】优化层&lt;/text&gt;
+                                &lt;text x="130" y="48" text-anchor="middle" fill="#64748b" font-size="10"&gt;内循环 ×12，早期额外优化&lt;/text&gt;
+                                
+                                &lt;rect x="40" y="65" width="180" height="35" fill="#eff6ff" stroke="#64748b" stroke-width="2" rx="6"/&gt;
+                                &lt;text x="130" y="87" text-anchor="middle" fill="#475569" font-weight="bold"&gt;1. UNet 预测噪声&lt;/text&gt;
+                                
+                                &lt;rect x="40" y="110" width="180" height="35" fill="#eff6ff" stroke="#64748b" stroke-width="2" rx="6"/&gt;
+                                &lt;text x="130" y="132" text-anchor="middle" fill="#475569" font-weight="bold"&gt;2. CFG&lt;/text&gt;
+                                
+                                &lt;rect x="40" y="155" width="180" height="35" fill="#eff6ff" stroke="#64748b" stroke-width="2" rx="6"/&gt;
+                                &lt;text x="130" y="177" text-anchor="middle" fill="#475569" font-weight="bold"&gt;3. Scheduler 更新&lt;/text&gt;
+                            &lt;/g&gt;
+                        &lt;/svg&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class="highlight-box-green"&gt;
+                    &lt;strong&gt;关键结论：&lt;/strong&gt;AnomalyAny 在「标准 SD 去噪」之前插入了优化层！
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;7 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 8: AnomalyAny 优化机制 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;AnomalyAny 优化机制&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;三大损失函数&lt;/h2&gt;
+                &lt;svg viewBox="0 0 700 130" xmlns="http://www.w3.org/2000/svg"&gt;
+                    &lt;g transform="translate(30, 10)"&gt;
+                        &lt;rect x="0" y="20" width="180" height="60" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="90" y="48" text-anchor="middle" fill="#92400e" font-weight="bold"&gt;L_att&lt;/text&gt;
+                        &lt;text x="90" y="70" text-anchor="middle" fill="#78350f" font-size="11"&gt;注意力损失&lt;/text&gt;
+                        &lt;text x="90" y="88" text-anchor="middle" fill="#92400e" font-size="10"&gt;关键词被关注&lt;/text&gt;
+                        
+                        &lt;rect x="210" y="20" width="180" height="60" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="300" y="48" text-anchor="middle" fill="#1e40af" font-weight="bold"&gt;L_img&lt;/text&gt;
+                        &lt;text x="300" y="70" text-anchor="middle" fill="#64748b" font-size="11"&gt;CLIP 损失&lt;/text&gt;
+                        &lt;text x="300" y="88" text-anchor="middle" fill="#1e40af" font-size="10"&gt;后期开启&lt;/text&gt;
+                        
+                        &lt;rect x="420" y="20" width="180" height="60" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="510" y="48" text-anchor="middle" fill="#166534" font-weight="bold"&gt;L_prompt&lt;/text&gt;
+                        &lt;text x="510" y="70" text-anchor="middle" fill="#64748b" font-size="11"&gt;文本嵌入损失&lt;/text&gt;
+                        &lt;text x="510" y="88" text-anchor="middle" fill="#166534" font-size="10"&gt;对齐详细描述&lt;/text&gt;
+                    &lt;/g&gt;
+                &lt;/svg&gt;
+
+                &lt;h2&gt;核心创新&lt;/h2&gt;
+                &lt;div class="highlight-box"&gt;
+                    &lt;svg viewBox="0 0 650 100" xmlns="http://www.w3.org/2000/svg"&gt;
+                        &lt;g transform="translate(20, 10)"&gt;
+                            &lt;rect x="0" y="10" width="160" height="50" fill="#1e40af" stroke="#1e3a8a" stroke-width="2" rx="8"/&gt;
+                            &lt;text x="80" y="40" text-anchor="middle" fill="white" font-weight="bold"&gt;latents 可训练&lt;/text&gt;
+                            
+                            &lt;polygon points="165,35 195,25 195,45" fill="#1e40af"/&gt;
+                            
+                            &lt;rect x="200" y="10" width="160" height="50" fill="#3b82f6" stroke="#2563eb" stroke-width="2" rx="8"/&gt;
+                            &lt;text x="280" y="40" text-anchor="middle" fill="white" font-weight="bold"&gt;梯度下降优化&lt;/text&gt;
+                            
+                            &lt;polygon points="365,35 395,25 395,45" fill="#3b82f6"/&gt;
+                            
+                            &lt;rect x="400" y="10" width="160" height="50" fill="#60a5fa" stroke="#3b82f6" stroke-width="2" rx="8"/&gt;
+                            &lt;text x="480" y="40" text-anchor="middle" fill="white" font-weight="bold"&gt;不破坏 SD&lt;/text&gt;
+                        &lt;/g&gt;
+                    &lt;/svg&gt;
+                &lt;/div&gt;
+                &lt;div class="code-ref"&gt;核心函数：clip_pipeline_attend_and_excite.py 第 732-790 行&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;8 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 9: 核心结论 - 模型上限 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;核心结论：模型上限问题&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;LoRA vs AnomalyAny 对比&lt;/h2&gt;
+                &lt;table&gt;
+                    &lt;thead&gt;
+                        &lt;tr&gt;
+                            &lt;th&gt;方面&lt;/th&gt;
+                            &lt;th&gt;LoRA&lt;/th&gt;
+                            &lt;th&gt;AnomalyAny&lt;/th&gt;
+                        &lt;/tr&gt;
+                    &lt;/thead&gt;
+                    &lt;tbody&gt;
+                        &lt;tr&gt;
+                            &lt;td&gt;&lt;strong&gt;本质&lt;/strong&gt;&lt;/td&gt;
+                            &lt;td&gt;训练（改变权重）&lt;/td&gt;
+                            &lt;td&gt;测试时优化（不改权重）&lt;/td&gt;
+                        &lt;/tr&gt;
+                        &lt;tr&gt;
+                            &lt;td&gt;&lt;strong&gt;数据需求&lt;/strong&gt;&lt;/td&gt;
+                            &lt;td&gt;10-100 张&lt;/td&gt;
+                            &lt;td&gt;0 张（纯文本）&lt;/td&gt;
+                        &lt;/tr&gt;
+                        &lt;tr&gt;
+                            &lt;td&gt;&lt;strong&gt;知识来源&lt;/strong&gt;&lt;/td&gt;
+                            &lt;td&gt;训练样本教给模型&lt;/td&gt;
+                            &lt;td&gt;&lt;strong style="color: #ef4444;"&gt;完全依赖基础模型&lt;/strong&gt;&lt;/td&gt;
+                        &lt;/tr&gt;
+                    &lt;/tbody&gt;
+                &lt;/table&gt;
+
+                &lt;div class="highlight-box-red"&gt;
+                    &lt;h3 style="margin: 0 0 10px 0; color: #991b1b;"&gt;重要结论&lt;/h3&gt;
+                    &lt;ul&gt;
+                        &lt;li&gt;LoRA 和 AnomalyAny 都是「锦上添花」&lt;/li&gt;
+                        &lt;li&gt;它们的上限完全由基础模型能力决定&lt;/li&gt;
+                        &lt;li&gt;如果基础模型「不知道」某种概念，再高级的优化也没用&lt;/li&gt;
+                    &lt;/ul&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;9 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 10: SD2.1 的问题 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;SD2.1 的问题：为什么总是动漫风？&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;根本原因&lt;/h2&gt;
+                &lt;div class="highlight-box-red"&gt;
+                    &lt;svg viewBox="0 0 650 100" xmlns="http://www.w3.org/2000/svg"&gt;
+                        &lt;g transform="translate(20, 10)"&gt;
+                            &lt;rect x="100" y="10" width="450" height="60" fill="#fef2f2" stroke="#ef4444" stroke-width="3" rx="10"/&gt;
+                            &lt;text x="325" y="40" text-anchor="middle" fill="#991b1b" font-weight="bold" font-size="18"&gt;训练数据 LAION 中动漫/插画占比过高&lt;/text&gt;
+                            &lt;text x="325" y="65" text-anchor="middle" fill="#7f1d1d" font-size="14"&gt;模型学到了这个分布 → 生成总是有动漫风&lt;/text&gt;
+                        &lt;/g&gt;
+                    &lt;/svg&gt;
+                &lt;/div&gt;
+
+                &lt;h2&gt;特征对比&lt;/h2&gt;
+                &lt;table&gt;
+                    &lt;thead&gt;
+                        &lt;tr&gt;
+                            &lt;th&gt;特征&lt;/th&gt;
+                            &lt;th&gt;SD2.1&lt;/th&gt;
+                            &lt;th&gt;真实感模型&lt;/th&gt;
+                        &lt;/tr&gt;
+                    &lt;/thead&gt;
+                    &lt;tbody&gt;
+                        &lt;tr&gt;
+                            &lt;td&gt;&lt;strong&gt;人脸&lt;/strong&gt;&lt;/td&gt;
+                            &lt;td&gt;动漫化（大眼睛）&lt;/td&gt;
+                            &lt;td&gt;真实&lt;/td&gt;
+                        &lt;/tr&gt;
+                        &lt;tr&gt;
+                            &lt;td&gt;&lt;strong&gt;色彩&lt;/strong&gt;&lt;/td&gt;
+                            &lt;td&gt;高饱和度&lt;/td&gt;
+                            &lt;td&gt;自然&lt;/td&gt;
+                        &lt;/tr&gt;
+                        &lt;tr&gt;
+                            &lt;td&gt;&lt;strong&gt;结构&lt;/strong&gt;&lt;/td&gt;
+                            &lt;td&gt;简化&lt;/td&gt;
+                            &lt;td&gt;准确&lt;/td&gt;
+                        &lt;/tr&gt;
+                    &lt;/tbody&gt;
+                &lt;/table&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;10 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 11: 模型对比实验 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;模型对比实验&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;实验设置&lt;/h2&gt;
+                &lt;ul&gt;
+                    &lt;li&gt;相同：text-to-image，不用 LoRA/AnomalyAny&lt;/li&gt;
+                    &lt;li&gt;变量：不同基础模型&lt;/li&gt;
+                    &lt;li&gt;Prompt：「a person using a phone, realistic photo」&lt;/li&gt;
+                &lt;/ul&gt;
+
+                &lt;h2&gt;结果对比&lt;/h2&gt;
+                &lt;svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg"&gt;
+                    &lt;g transform="translate(30, 20)"&gt;
+                        &lt;rect x="0" y="0" width="650" height="30" fill="#fee2e2" stroke="#fecaca" rx="6"/&gt;
+                        &lt;text x="120" y="20" fill="#991b1b" font-weight="bold"&gt;SD2.1&lt;/text&gt;
+                        &lt;text x="500" y="20" fill="#7f1d1d"&gt;⭐ 高动漫风&lt;/text&gt;
+                        
+                        &lt;rect x="0" y="40" width="650" height="30" fill="#dcfce7" stroke="#bbf7d0" rx="6"/&gt;
+                        &lt;text x="120" y="60" fill="#166534" font-weight="bold"&gt;Realistic Vision 1.5&lt;/text&gt;
+                        &lt;text x="500" y="60" fill="#15803d"&gt;⭐⭐⭐⭐⭐ 低动漫风，真实感强&lt;/text&gt;
+                        
+                        &lt;rect x="0" y="80" width="650" height="30" fill="#fef3c7" stroke="#fde68a" rx="6"/&gt;
+                        &lt;text x="120" y="100" fill="#92400e" font-weight="bold"&gt;SDXL&lt;/text&gt;
+                        &lt;text x="500" y="100" fill="#78350f"&gt;⭐⭐⭐⭐ 中等&lt;/text&gt;
+                        
+                        &lt;rect x="0" y="120" width="650" height="30" fill="#dcfce7" stroke="#bbf7d0" rx="6"/&gt;
+                        &lt;text x="120" y="140" fill="#166534" font-weight="bold"&gt;ZImage&lt;/text&gt;
+                        &lt;text x="500" y="140" fill="#15803d"&gt;⭐⭐⭐⭐⭐ 低动漫风，真实感强&lt;/text&gt;
+                    &lt;/g&gt;
+                &lt;/svg&gt;
+
+                &lt;div class="highlight-box-green"&gt;
+                    &lt;strong&gt;结论：&lt;/strong&gt;SD2.1 确实不适合真实感任务，换用更好的基础模型是关键！
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;11 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 12: 人脸修复工作 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;人脸修复工作：当前方案&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;问题背景&lt;/h2&gt;
+                &lt;div class="highlight-box"&gt;
+                    目标数据集中约 &lt;strong&gt;70%&lt;/strong&gt; 人脸被打马赛克
+                &lt;/div&gt;
+
+                &lt;h2&gt;当前方案：二阶段修复&lt;/h2&gt;
+                &lt;svg viewBox="0 0 700 120" xmlns="http://www.w3.org/2000/svg"&gt;
+                    &lt;g transform="translate(30, 10)"&gt;
+                        &lt;rect x="0" y="25" width="160" height="50" fill="#eff6ff" stroke="#64748b" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="80" y="50" text-anchor="middle" fill="#475569" font-weight="bold"&gt;马赛克检测&lt;/text&gt;
+                        &lt;text x="80" y="70" text-anchor="middle" fill="#64748b" font-size="10"&gt;统计连续灰色区域&lt;/text&gt;
+                        
+                        &lt;polygon points="165,50 195,40 195,60" fill="#64748b"/&gt;
+                        
+                        &lt;rect x="200" y="25" width="160" height="50" fill="#fef3c7" stroke="#f59e0b" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="280" y="50" text-anchor="middle" fill="#92400e" font-weight="bold"&gt;阶段 1&lt;/text&gt;
+                        &lt;text x="280" y="70" text-anchor="middle" fill="#78350f" font-size="10"&gt;SD2.1 Inpainting&lt;/text&gt;
+                        
+                        &lt;polygon points="365,50 395,40 395,60" fill="#f59e0b"/&gt;
+                        
+                        &lt;rect x="400" y="25" width="160" height="50" fill="#dcfce7" stroke="#22c55e" stroke-width="2" rx="8"/&gt;
+                        &lt;text x="480" y="50" text-anchor="middle" fill="#166534" font-weight="bold"&gt;阶段 2&lt;/text&gt;
+                        &lt;text x="480" y="70" text-anchor="middle" fill="#15803d" font-size="10"&gt;ZImage 轻微写实处理&lt;/text&gt;
+                    &lt;/g&gt;
+                &lt;/svg&gt;
+
+                &lt;h2&gt;限制&lt;/h2&gt;
+                &lt;ul&gt;
+                    &lt;li&gt;对新模型架构不熟悉&lt;/li&gt;
+                    &lt;li&gt;暂时先使用 SD2.1 进行实现&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;12 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 13: 人脸修复问题 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;人脸修复工作：现有问题与改进方向&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;现有问题&lt;/h2&gt;
+                &lt;div class="two-col"&gt;
+                    &lt;div class="highlight-box-red"&gt;
+                        &lt;strong&gt;问题 1：&lt;/strong&gt;马赛克检测有漏检
+                        &lt;ul&gt;
+                            &lt;li&gt;只依赖简单的灰色区域统计&lt;/li&gt;
+                            &lt;li&gt;鲁棒性不足&lt;/li&gt;
+                        &lt;/ul&gt;
+                        &lt;div style="margin-top: 15px; color: #7f1d1d;"&gt;
+                            &lt;strong&gt;应对方案：&lt;/strong&gt;二次修复
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    
+                    &lt;div class="highlight-box-red"&gt;
+                        &lt;strong&gt;问题 2：&lt;/strong&gt;SD2.1 修复结果仍有动漫风
+                        &lt;ul&gt;
+                            &lt;li&gt;阶段 2 ZImage 可部分缓解&lt;/li&gt;
+                            &lt;li&gt;但如果阶段 1 太差，会被放大&lt;/li&gt;
+                        &lt;/ul&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;h2&gt;改进方向&lt;/h2&gt;
+                &lt;div class="highlight-box-green"&gt;
+                    &lt;strong&gt;优先方案：&lt;/strong&gt;直接使用 ZImage 或 Flux 的 Inpainting 能力
+                    &lt;ul style="margin-top: 10px;"&gt;
+                        &lt;li&gt;新模型本身的真实感更强&lt;/li&gt;
+                        &lt;li&gt;减少对二阶段的依赖&lt;/li&gt;
+                    &lt;/ul&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;13 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 14: 后续规划 - 近期 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;后续规划：近期任务（1-2周）&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;任务 1：验证新模型 inpainting 能力&lt;/h2&gt;
+                &lt;div class="highlight-box"&gt;
+                    &lt;ul&gt;
+                        &lt;li&gt;ZImage inpainting 测试&lt;/li&gt;
+                        &lt;li&gt;Flux inpainting 测试&lt;/li&gt;
+                        &lt;li&gt;SD2.1 vs ZImage vs Flux 对比&lt;/li&gt;
+                    &lt;/ul&gt;
+                    &lt;div style="margin-top: 10px; color: #64748b;"&gt;⏱ 预计时间：1-2 天&lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;h2&gt;任务 2：改进人脸修复系统&lt;/h2&gt;
+                &lt;div class="highlight-box"&gt;
+                    &lt;ul&gt;
+                        &lt;li&gt;用新模型替换 SD2.1&lt;/li&gt;
+                        &lt;li&gt;改进马赛克检测算法&lt;/li&gt;
+                    &lt;/ul&gt;
+                    &lt;div style="margin-top: 10px; color: #64748b;"&gt;⏱ 预计时间：2-3 天&lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;h2&gt;任务 3（可选）：训练新模型的 LoRA&lt;/h2&gt;
+                &lt;div class="highlight-box"&gt;
+                    如果新模型效果已很好 → 收集少量数据微调 LoRA
+                    &lt;div style="margin-top: 10px; color: #64748b;"&gt;⏱ 预计时间：3-5 天&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;14 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 15: 后续规划 - 长期 --&gt;
+        &lt;div class="slide"&gt;
+            &lt;div class="slide-header"&gt;
+                &lt;div class="slide-title"&gt;后续规划：长期探索（1-2月）&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-content"&gt;
+                &lt;h2&gt;并行探索策略&lt;/h2&gt;
+                &lt;svg viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg"&gt;
+                    &lt;g transform="translate(30, 10)"&gt;
+                        &lt;rect x="20" y="30" width="280" height="90" fill="#dcfce7" stroke="#22c55e" stroke-width="3" rx="10"/&gt;
+                        &lt;text x="160" y="60" text-anchor="middle" fill="#166534" font-weight="bold" font-size="16"&gt;路径 A：直接用新模型&lt;/text&gt;
+                        &lt;text x="160" y="85" text-anchor="middle" fill="#15803d" font-size="12"&gt;ZImage / Flux&lt;/text&gt;
+                        &lt;text x="160" y="110" text-anchor="middle" fill="#166534" font-size="12"&gt;→ 训练新模型 LoRA&lt;/text&gt;
+                        
+                        &lt;text x="350" y="75" fill="#64748b" font-weight="bold" font-size="16"&gt;或&lt;/text&gt;
+                        
+                        &lt;rect x="380" y="30" width="280" height="90" fill="#dbeafe" stroke="#3b82f6" stroke-width="3" rx="10"/&gt;
+                        &lt;text x="520" y="50" text-anchor="middle" fill="#1e40af" font-weight="bold" font-size="16"&gt;路径 B：AnomalyAny 迁移&lt;/text&gt;
+                        &lt;text x="520" y="80" text-anchor="middle" fill="#1e40af" font-size="12"&gt;• SDXL 迁移（1-2周，较容易）&lt;/text&gt;
+                        &lt;text x="520" y="105" text-anchor="middle" fill="#1e40af" font-size="12"&gt;• Flux 迁移（3-4周，高难度）&lt;/text&gt;
+                    &lt;/g&gt;
+                &lt;/svg&gt;
+
+                &lt;div class="highlight-box"&gt;
+                    &lt;strong&gt;关键决策点：&lt;/strong&gt;如果路径 A（新模型+LoRA）已足够好 → 可以考虑放弃路径 B！
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;15 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Slide 16: 总结与 Q&amp;A --&gt;
+        &lt;div class="slide qa-slide"&gt;
+            &lt;div class="slide-title" style="color: white;"&gt;总结与 Q&amp;A&lt;/div&gt;
+            &lt;div class="slide-content" style="color: #e2e8f0; max-width: 900px; margin: 0 auto;"&gt;
+                &lt;h2 style="color: #60a5fa; border-left-color: #3b82f6;"&gt;本周核心收获&lt;/h2&gt;
+                &lt;ul style="margin-bottom: 30px;"&gt;
+                    &lt;li&gt;深入理解了 SD 三种 Pipeline 与 AnomalyAny&lt;/li&gt;
+                    &lt;li&gt;得出核心结论：基础模型决定上限&lt;/li&gt;
+                    &lt;li&gt;SD2.1 不适合真实感任务&lt;/li&gt;
+                    &lt;li&gt;新模型（RV1.5、SDXL、ZImage）优势明显&lt;/li&gt;
+                &lt;/ul&gt;
+
+                &lt;h2 style="color: #60a5fa; border-left-color: #3b82f6;"&gt;后续重点&lt;/h2&gt;
+                &lt;ul&gt;
+                    &lt;li&gt;优先验证新模型 inpainting&lt;/li&gt;
+                    &lt;li&gt;改进人脸修复系统&lt;/li&gt;
+                    &lt;li&gt;并行探索 AnomalyAny 迁移&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class="slide-number"&gt;16 / 16&lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;!-- Navigation Buttons --&gt;
+        &lt;div class="nav-buttons"&gt;
+            &lt;button class="nav-btn" id="prev-btn"&gt;← 上一页&lt;/button&gt;
+            &lt;button class="nav-btn" id="next-btn"&gt;下一页 →&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function updateSlide() {
+            slides.forEach((slide, index) =&gt; {
+                slide.classList.toggle('active', index === currentSlide);
+            });
+
+            document.getElementById('prev-btn').disabled = currentSlide === 0;
+            document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        document.getElementById('prev-btn').addEventListener('click', () =&gt; {
+            if (currentSlide &gt; 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        });
+
+        document.getElementById('next-btn').addEventListener('click', () =&gt; {
+            if (currentSlide &lt; totalSlides - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) =&gt; {
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                if (currentSlide &gt; 0) {
+                    currentSlide--;
+                    updateSlide();
+                }
+            } else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+                if (currentSlide &lt; totalSlides - 1) {
+                    currentSlide++;
+                    updateSlide();
+                }
+            }
+        });
+
+        updateSlide();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
