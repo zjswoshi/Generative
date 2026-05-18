@@ -563,10 +563,66 @@
                     <p style="font-size: 18px; margin-top: 12px;">LoRA和AnomalyAny都只是<strong>锦上添花</strong>！</p>
                     <p style="font-size: 18px;">它们的上限完全由<strong>基础模型</strong>的能力决定！</p>
                 </div>
-                <div class="slide-number">16 / 20</div>
+                <div class="slide-number">16 / 22</div>
             </div>
         </div>
         <!-- Slide 17 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">人脸修复任务：现状</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">问题背景</h3>
+                <div class="highlight-warning">
+                    <p style="font-size: 18px; font-weight: 600;">目标数据集中约70%的人脸被打马赛克，需要进行人脸修复</p>
+                </div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">当前方案：两阶段修复</h3>
+                <svg width="100%" height="160" viewBox="0 0 900 160">
+                    <rect x="30" y="20" width="200" height="100" rx="12" fill="#f0f7ff" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="130" y="48" text-anchor="middle" fill="#1e40af" font-size="16" font-weight="600">阶段一</text>
+                    <text x="130" y="78" text-anchor="middle" fill="#64748b" font-size="14">SD2.1 Inpainting</text>
+                    <text x="130" y="102" text-anchor="middle" fill="#64748b" font-size="13">检测+修复</text>
+                    <polygon points="240,70 270,60 270,80" fill="#3b82f6"/>
+                    <rect x="280" y="20" width="200" height="100" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+                    <text x="380" y="48" text-anchor="middle" fill="#92400e" font-size="16" font-weight="600">阶段二</text>
+                    <text x="380" y="78" text-anchor="middle" fill="#78350f" font-size="14">ZImage 轻微</text>
+                    <text x="380" y="102" text-anchor="middle" fill="#78350f" font-size="13">写实处理</text>
+                    <polygon points="490,70 520,60 520,80" fill="#f59e0b"/>
+                    <rect x="530" y="20" width="250" height="100" rx="12" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+                    <text x="655" y="48" text-anchor="middle" fill="#166534" font-size="16" font-weight="600">马赛克检测</text>
+                    <text x="655" y="78" text-anchor="middle" fill="#64748b" font-size="14">统计连续灰色区域</text>
+                    <text x="655" y="102" text-anchor="middle" fill="#64748b" font-size="13">二次修复策略</text>
+                </svg>
+                <div class="highlight-info" style="margin-top: 20px;">
+                    <strong>检测方法：</strong>统计连续灰色区域，超过阈值判定为马赛克
+                </div>
+                <div class="slide-number">17 / 22</div>
+            </div>
+        </div>
+        <!-- Slide 18 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">人脸修复：问题与改进方向</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">现有问题</h3>
+                <div class="two-col">
+                    <div class="card" style="background: #fee2e2;">
+                        <h4 style="color: #991b1b;">问题一</h4>
+                        <p style="margin-top: 12px; font-size: 16px;">马赛克检测有漏检</p>
+                        <p style="color: #7f1d1d; margin-top: 8px;">应对方案：二次修复策略</p>
+                    </div>
+                    <div class="card" style="background: #fee2e2;">
+                        <h4 style="color: #991b1b;">问题二</h4>
+                        <p style="margin-top: 12px; font-size: 16px;">SD2.1修复人脸仍有动漫风</p>
+                        <p style="color: #7f1d1d; margin-top: 8px;">阶段二可部分缓解，但阶段一差时会放大问题</p>
+                    </div>
+                </div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">改进方向</h3>
+                <div class="highlight-success" style="margin-top: 20px;">
+                    <p style="font-size: 18px; font-weight: 600;">优先方案：直接使用ZImage或Flux的Inpainting能力</p>
+                    <p style="margin-top: 12px; font-size: 16px;">新模型本身真实感更强，减少对二阶段的依赖</p>
+                </div>
+                <div class="slide-number">18 / 22</div>
+            </div>
+        </div>
+        <!-- Slide 19 -->
         <div class="slide-container">
             <div class="slide">
                 <div class="slide-header"><h2 class="slide-title">SD2.1的问题：为什么总是动漫风？</h2></div>
@@ -588,7 +644,7 @@
                         <tr><td><strong>结构</strong></td><td>简化</td><td>准确</td></tr>
                     </tbody>
                 </table>
-                <div class="slide-number">17 / 20</div>
+                <div class="slide-number">19 / 22</div>
             </div>
         </div>
         <!-- Slide 18 -->
@@ -616,10 +672,10 @@
                 <div class="highlight-success" style="margin-top: 30px;">
                     <strong>关键决策</strong>：如果新模型+LoRA效果已足够好，可以考虑暂时搁置AnomalyAny迁移！
                 </div>
-                <div class="slide-number">18 / 20</div>
+                <div class="slide-number">20 / 22</div>
             </div>
         </div>
-        <!-- Slide 19 -->
+        <!-- Slide 21 -->
         <div class="slide-container">
             <div class="slide">
                 <div class="slide-header"><h2 class="slide-title">长期探索方向</h2></div>
@@ -648,10 +704,10 @@
                         路径A（新模型+LoRA）→ 如果仍不满意 → 再考虑路径B
                     </p>
                 </div>
-                <div class="slide-number">19 / 20</div>
+                <div class="slide-number">21 / 22</div>
             </div>
         </div>
-        <!-- Slide 20 -->
+        <!-- Slide 22 -->
         <div class="slide-container">
             <div class="slide slide-cover">
                 <div style="z-index: 1; text-align: center;">
@@ -664,6 +720,12 @@
                             <li>得出：LoRA和AnomalyAny的上限由基础模型决定</li>
                             <li>SD2.1不适合真实感任务 → 需要换模型</li>
                         </ul>
+                        <h3 style="color: #60a5fa; margin: 36px 0 20px 0; font-size: 24px;">人脸修复任务进展</h3>
+                        <ul style="font-size: 18px; line-height: 1.8;">
+                            <li>当前方案：两阶段修复（SD2.1 Inpainting + ZImage写实处理）</li>
+                            <li>问题：马赛克检测漏检、SD2.1人脸仍有动漫风</li>
+                            <li>改进方向：直接用ZImage/Flux Inpainting</li>
+                        </ul>
                         <h3 style="color: #60a5fa; margin: 36px 0 20px 0; font-size: 24px;">后续重点</h3>
                         <ul style="font-size: 18px; line-height: 1.8;">
                             <li>优先验证新模型inpainting能力（ZImage、Flux）</li>
@@ -672,7 +734,7 @@
                         </ul>
                     </div>
                 </div>
-                <div class="slide-number" style="color: rgba(255,255,255,0.6);">20 / 20</div>
+                <div class="slide-number" style="color: rgba(255,255,255,0.6);">22 / 22</div>
             </div>
         </div>
         <!-- Navigation -->
