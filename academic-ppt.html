@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>工作周总结与研究进展</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@400;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; overflow: hidden; }
+        body { 
+            font-family: 'Source Serif Pro', Noto Serif SC, Georgia, serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+        }
+        .presentation-container { 
+            width: 100%; height: 100%; position: relative; perspective: 1200px;
+        }
+        .slide-container {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: translateX(100%) scale(0.95);
+        }
+        .slide-container.active {
+            opacity: 1; visibility: visible; transform: translateX(0) scale(1); z-index: 10;
+        }
+        .slide-container.prev { transform: translateX(-100%) scale(0.95); }
+        .slide {
+            width: 95%; max-width: 1400px; height: 90%;
+            background: white; border-radius: 24px; box-shadow: 0 30px 80px rgba(0,0,0,0.15);
+            padding: 60px 80px; overflow-y: auto; position: relative;
+        }
+        @media (max-width: 768px) { .slide { padding: 40px; width: 96%; } }
+        .slide-header {
+            border-bottom: 3px solid #1e40af; padding-bottom: 24px; margin-bottom: 40px;
+        }
+        .slide-title {
+            font-size: clamp(28px); color: #1e3a5f; font-weight: 700;
+        }
+        .cover { display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center;
+        background: linear-gradient(135deg, #1e3a5f, #0f172a); color: white;
+        position: relative; overflow: hidden;
+    }
+    .slide-cover::before {
+        content: ''; position: absolute; top: -50%; right: -10%; width: 400px; height: 400px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%;
+        border-radius: 50%;
+    }
+    .slide-cover h1 {
+        font-size: clamp(36px); z-index: 1; position: relative;
+    }
+    .cover .slide-header { border-bottom-color: rgba(255,255,255,0.3); }
+    .highlight { background: #f0f7ff; padding: 24px 32px; border-left: 5px solid #3b82f6; border-radius: 0 12px 12px 0; margin: 28px 0;
+    }
+    .highlight-warning { background: #fef3c7; border-left-color: #f59e0b; }
+    .highlight-success { background: #dcfce7; border-left-color: #22c55e; }
+    .highlight-danger { background: #fee2e2; border-left-color: #ef4444; }
+    table { width: 100%; border-collapse: collapse; margin: 30px 0; font-size: 18px; }
+    th, td { border: 1px solid #d1d5db; padding: 16px 20px; text-align: left; }
+    th { background: #1e40af; color: white; font-weight: 600; }
+    tr:nth-child(even) { background: #f8fafc; }
+    .nav-controls {
+        position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 20px; z-index: 100;
+    }
+    .nav-btn {
+        width: 60px; height: 60px; border-radius: 50%; border: none;
+        background: #1e40af; color: white; font-size: 24px; cursor: pointer;
+        box-shadow: 0 6px 20px rgba(30,64,175,0.4); transition: all 0.3s ease;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .nav-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(30,64,175,0.5); background: #1e3a8a; }
+    .nav-btn:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
+    .slide-progress {
+        position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 8px; z-index: 100;
+    }
+    .dot {
+        width: 12px; height: 12px; border-radius: 50%; background: #cbd5e1;
+        cursor: pointer; transition: all 0.3s ease;
+    }
+    .dot.active { background: #1e40af; transform: scale(1.3); }
+    .slide-number {
+        position: absolute; bottom: 30px; right: 50px; font-size: 16px; color: #64748b;
+        font-weight: 600;
+    }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+    .card { padding: 30px; border-radius: 16px; background: linear-gradient(145deg, #ffffff, #f0f4f8); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    .card h4 { color: #1e40af; margin-bottom: 16px; font-size: 22px; }
+    svg { max-width: 100%; margin: 24px 0; }
+    @media (max-width: 768px) { 
+        .nav-controls { bottom: 20px; } .nav-btn { width: 50px; height: 50px; font-size: 20px; }
+        .slide-progress { bottom: 90px; } .slide-number { right: 30px; }
+    }
+    @media (max-width: 480px) { .slide { padding: 24px; } }
+    </style>
+</head>
+<body>
+    <div class="presentation-container" id="presentation">
+        <!-- Slide 1 -->
+        <div class="slide-container active">
+            <div class="slide slide-cover">
+                <div class="slide-header" style="border-bottom: none;">
+                    <h1 style="color: white; font-size: clamp(32px);">工作周总结与研究进展</h1>
+                </div>
+                <div style="font-size: 22px; margin: 30px 0; color: #cbd5e1; z-index: 1;">
+                    Stable Diffusion 原理理解、问题分析与后续计划
+                </div>
+                <div style="font-size: 18px; margin-top: 60px; color: #e2e8f0; z-index: 1;">
+                    <p>汇报人：[您的姓名]</p>
+                    <p>日期：2026年5月18日</p>
+                </div>
+                <div class="slide-number" style="color: rgba(255,255,255,0.6);">1 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 2 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">工作概述</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">本周核心目标</h3>
+                <svg width="100%" height="180" viewBox="0 0 800 180">
+                    <rect x="50" y="30" width="300" height="120" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="200" y="65" text-anchor="middle" fill="#1e40af" font-size="18" font-weight="600">生成「人物玩手机」的真实数据</text>
+                    <text x="200" y="95" text-anchor="middle" fill="#64748b" font-size="14">用于数据集补充</text>
+                    <text x="200" y="120" text-anchor="middle" fill="#64748b" font-size="14">真实感强，无动漫风格</text>
+                    <rect x="450" y="30" width="300" height="120" rx="12" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+                    <text x="600" y="65" text-anchor="middle" fill="#166534" font-size="18" font-weight="600">人脸马赛克修复问题</text>
+                    <text x="600" y="95" text-anchor="middle" fill="#64748b" font-size="14">约 70% 人脸被打马赛克</text>
+                    <text x="600" y="120" text-anchor="middle" fill="#64748b" font-size="14">修复后保持真实感</text>
+                </svg>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">工作流程</h3>
+                <svg width="100%" height="80" viewBox="0 0 900 80">
+                    <rect x="30" y="20" width="140" height="40" rx="8" fill="#1e40af"/>
+                    <text x="100" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">问题发现</text>
+                    <polygon points="180,40 210,30 210,50" fill="#1e40af"/>
+                    <rect x="220" y="20" width="140" height="40" rx="8" fill="#3b82f6"/>
+                    <text x="290" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">理论分析</text>
+                    <polygon points="370,40 400,30 400,50" fill="#3b82f6"/>
+                    <rect x="410" y="20" width="140" height="40" rx="8" fill="#2563eb"/>
+                    <text x="480" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">模型对比</text>
+                    <polygon points="560,40 590,30 590,50" fill="#2563eb"/>
+                    <rect x="600" y="20" width="140" height="40" rx="8" fill="#1d4ed8"/>
+                    <text x="670" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">系统实现</text>
+                </svg>
+                <div class="slide-number">2 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 3 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">问题发现：LoRA方案的局限性</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">初始方案</h3>
+                <div class="highlight">
+                    <p style="font-size: 18px;">用开源「人物玩手机」数据集训练 SD2.1 LoRA</p>
+                </div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">问题</h3>
+                <div class="highlight-danger">
+                    <p style="font-size: 18px;">❌ SD2.1 始终生成动漫风格图片</p>
+                    <p style="font-size: 18px; margin-top: 12px;">❌ 无论标准SD还是AnomalyAny都无法解决</p>
+                </div>
+                <div style="margin: 40px 0;">
+                <svg width="100%" height="140" viewBox="0 0 800 140">
+                    <rect x="250" y="20" width="300" height="100" rx="16" fill="#fef3c7" stroke="#f59e0b" stroke-width="3"/>
+                    <text x="400" y="55" text-anchor="middle" fill="#92400e" font-size="20" font-weight="600">转向</text>
+                    <text x="400" y="85" text-anchor="middle" fill="#78350f" font-size="16">深入研究SD原理</text>
+                    <text x="400" y="110" text-anchor="middle" fill="#78350f" font-size="16">分析根本原因</text>
+                </svg>
+                </div>
+                <div class="slide-number">3 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 4 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">SD整体架构</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">三大核心组件</h3>
+                <svg width="100%" height="300" viewBox="0 0 900 300">
+                    <rect x="350" y="10" width="200" height="50" rx="8" fill="#1e40af"/>
+                    <text x="450" y="40" text-anchor="middle" fill="white" font-size="16" font-weight="600">Text Prompt</text>
+                    <line x1="450" y1="60" x2="450" y2="80" stroke="#64748b" stroke-width="2"/>
+                    <rect x="280" y="80" width="340" height="50" rx="8" fill="#3b82f6"/>
+                    <text x="450" y="110" text-anchor="middle" fill="white" font-size="16" font-weight="600">Text Encoder (CLIP ViT-L/14)</text>
+                    <line x1="450" y1="130" x2="450" y2="150" stroke="#64748b" stroke-width="2"/>
+                    <rect x="180" y="150" width="540" height="60" rx="8" fill="#2563eb"/>
+                    <text x="450" y="185" text-anchor="middle" fill="white" font-size="18" font-weight="600">UNet (条件去噪网络)</text>
+                    <text x="450" y="200" text-anchor="middle" fill="#bfdbfe" font-size="12">交叉注意力层注入文本条件</text>
+                    <line x1="250" y1="150" x2="250" y2="130" stroke="#64748b" stroke-width="2"/>
+                    <rect x="150" y="90" width="200" height="40" rx="8" fill="#1e3a8a"/>
+                    <text x="250" y="115" text-anchor="middle" fill="white" font-size="14" font-weight="600">Random Noise</text>
+                    <line x1="450" y1="210" x2="450" y2="230" stroke="#64748b" stroke-width="2"/>
+                    <rect x="300" y="230" width="300" height="50" rx="8" fill="#1e40af"/>
+                    <text x="450" y="260" text-anchor="middle" fill="white" font-size="16" font-weight="600">VAE Decoder → Final Image</text>
+                </svg>
+                <div class="highlight-warning">
+                    <strong>关键问题</strong>：UNet学到的能力由训练数据决定！
+                </div>
+                <div class="slide-number">4 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 5 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">Text-to-Image流程</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">完整步骤</h3>
+                <svg width="100%" height="260" viewBox="0 0 900 260">
+                    <rect x="30" y="20" width="180" height="40" rx="8" fill="#1e40af"/>
+                    <text x="120" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">1. 文本 → CLIP → Text Embedding</text>
+                    <polygon points="220,40 250,30 250,50" fill="#1e40af"/>
+                    <rect x="260" y="20" width="180" height="40" rx="8" fill="#3b82f6"/>
+                    <text x="350" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">2. 随机噪声初始化</text>
+                    <polygon points="450,40 480,30 480,50" fill="#3b82f6"/>
+                    <rect x="490" y="20" width="180" height="40" rx="8" fill="#2563eb"/>
+                    <text x="580" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">3. 去噪循环（多步）</text>
+                    <polygon points="680,40 710,30 710,50" fill="#2563eb"/>
+                    <rect x="720" y="20" width="150" height="40" rx="8" fill="#1d4ed8"/>
+                    <text x="795" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">4. VAE解码</text>
+                    <rect x="150" y="90" width="600" height="140" rx="12" fill="#f0f7ff" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="450" y="120" text-anchor="middle" fill="#1e40af" font-size="16" font-weight="600">去噪循环细节</text>
+                    <text x="450" y="150" text-anchor="middle" fill="#475569" font-size="14">• UNet预测噪声</text>
+                    <text x="450" y="180" text-anchor="middle" fill="#475569" font-size="14">• CFG (Classifier-Free Guidance)</text>
+                    <text x="450" y="210" text-anchor="middle" fill="#475569" font-size="14">• Scheduler更新latents</text>
+                </svg>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">CFG公式</h3>
+                <div class="highlight">
+                    <p style="font-family: monospace; font-size: 20px; text-align: center;">
+                        noise_pred = noise_pred_uncond + guidance_scale × (noise_pred_text - noise_pred_uncond)
+                    </p>
+                </div>
+                <div class="slide-number">5 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 6 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">Img2Img与Inpainting</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">Img2Img核心思想</h3>
+                <svg width="100%" height="160" viewBox="0 0 900 160">
+                    <rect x="30" y="30" width="120" height="40" rx="8" fill="#1e40af"/>
+                    <text x="90" y="55" text-anchor="middle" fill="white" font-size="14" font-weight="600">原图</text>
+                    <polygon points="160,50 190,40 190,60" fill="#1e40af"/>
+                    <rect x="200" y="30" width="120" height="40" rx="8" fill="#3b82f6"/>
+                    <text x="260" y="55" text-anchor="middle" fill="white" font-size="14" font-weight="600">VAE编码</text>
+                    <polygon points="330,50 360,40 360,60" fill="#3b82f6"/>
+                    <rect x="370" y="30" width="120" height="40" rx="8" fill="#f59e0b"/>
+                    <text x="430" y="55" text-anchor="middle" fill="white" font-size="14" font-weight="600">加噪</text>
+                    <polygon points="500,50 530,40 530,60" fill="#f59e0b"/>
+                    <rect x="540" y="30" width="120" height="40" rx="8" fill="#22c55e"/>
+                    <text x="600" y="55" text-anchor="middle" fill="white" font-size="14" font-weight="600">去噪</text>
+                    <polygon points="670,50 700,40 700,60" fill="#22c55e"/>
+                    <rect x="710" y="30" width="140" height="40" rx="8" fill="#16a34a"/>
+                    <text x="780" y="55" text-anchor="middle" fill="white" font-size="14" font-weight="600">结果</text>
+                    <rect x="250" y="100" width="400" height="40" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="450" y="125" text-anchor="middle" fill="#1e40af" font-size="14">denoising_strength控制加噪程度</text>
+                </svg>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">Inpainting：Masked Noise Blending</h3>
+                <div class="highlight-success">
+                    <ul style="font-size: 18px;">
+                        <li>保留原图非mask区域</li>
+                        <li>两边同步加噪，边界更平滑</li>
+                        <li>混合公式：去噪结果 × mask + 原图加噪 × (1-mask)</li>
+                    </ul>
+                </div>
+                <div class="slide-number">6 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 7 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">AnomalyAny在SD流程中的位置</h2></div>
+                <div class="two-col" style="margin-top: 40px;">
+                    <div class="card">
+                        <h4>标准SD去噪</h4>
+                        <svg width="100%" height="180" viewBox="0 0 300 180">
+                            <rect x="40" y="20" width="220" height="40" rx="8" fill="#cbd5e1"/>
+                            <text x="150" y="45" text-anchor="middle" fill="#475569" font-size="14" font-weight="600">1. UNet预测噪声</text>
+                            <rect x="40" y="70" width="220" height="40" rx="8" fill="#cbd5e1"/>
+                            <text x="150" y="95" text-anchor="middle" fill="#475569" font-size="14" font-weight="600">2. CFG</text>
+                            <rect x="40" y="120" width="220" height="40" rx="8" fill="#cbd5e1"/>
+                            <text x="150" y="145" text-anchor="middle" fill="#475569" font-size="14" font-weight="600">3. Scheduler更新</text>
+                        </svg>
+                    </div>
+                    <div class="card">
+                        <h4>AnomalyAny去噪</h4>
+                        <svg width="100%" height="240" viewBox="0 0 300 240">
+                            <rect x="20" y="10" width="260" height="60" rx="12" fill="#3b82f6"/>
+                            <text x="150" y="35" text-anchor="middle" fill="white" font-size="14" font-weight="600">【先优化】</text>
+                            <text x="150" y="55" text-anchor="middle" fill="#bfdbfe" font-size="11">内循环×12 + 早期额外优化</text>
+                            <rect x="40" y="80" width="220" height="35" rx="8" fill="#dbeafe"/>
+                            <text x="150" y="102" text-anchor="middle" fill="#1e40af" font-size="12" font-weight="600">1. UNet预测噪声</text>
+                            <rect x="40" y="125" width="220" height="35" rx="8" fill="#dbeafe"/>
+                            <text x="150" y="147" text-anchor="middle" fill="#1e40af" font-size="12" font-weight="600">2. CFG</text>
+                            <rect x="40" y="170" width="220" height="35" rx="8" fill="#dbeafe"/>
+                            <text x="150" y="192" text-anchor="middle" fill="#1e40af" font-size="12" font-weight="600">3. Scheduler更新</text>
+                        </svg>
+                    </div>
+                </div>
+                <div class="highlight" style="margin-top: 30px;">
+                    <p style="font-size: 18px; font-weight: 600;">关键结论：在标准SD去噪前插入优化层！</p>
+                </div>
+                <div class="slide-number">7 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 8 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">AnomalyAny优化机制</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">三大损失函数</h3>
+                <svg width="100%" height="160" viewBox="0 0 900 160">
+                    <rect x="30" y="20" width="250" height="100" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+                    <text x="155" y="55" text-anchor="middle" fill="#92400e" font-size="18" font-weight="600">L_att</text>
+                    <text x="155" y="80" text-anchor="middle" fill="#78350f" font-size="14">注意力损失</text>
+                    <text x="155" y="105" text-anchor="middle" fill="#78350f" font-size="14">让关键词被关注</text>
+                    <rect x="325" y="20" width="250" height="100" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="450" y="55" text-anchor="middle" fill="#1e40af" font-size="18" font-weight="600">L_img</text>
+                    <text x="450" y="80" text-anchor="middle" fill="#64748b" font-size="14">CLIP损失</text>
+                    <text x="450" y="105" text-anchor="middle" fill="#64748b" font-size="14">后期开启</text>
+                    <rect x="620" y="20" width="250" height="100" rx="12" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+                    <text x="745" y="55" text-anchor="middle" fill="#166534" font-size="18" font-weight="600">L_prompt</text>
+                    <text x="745" y="80" text-anchor="middle" fill="#64748b" font-size="14">文本嵌入损失</text>
+                    <text x="745" y="105" text-anchor="middle" fill="#64748b" font-size="14">对齐详细描述</text>
+                </svg>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">核心创新</h3>
+                <svg width="100%" height="100" viewBox="0 0 900 100">
+                    <rect x="50" y="20" width="220" height="60" rx="10" fill="#1e40af"/>
+                    <text x="160" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">latents可训练</text>
+                    <text x="160" y="65" text-anchor="middle" fill="#bfdbfe" font-size="12">梯度下降优化</text>
+                    <polygon points="280,50 310,40 310,60" fill="#1e40af"/>
+                    <rect x="320" y="20" width="240" height="60" rx="10" fill="#3b82f6"/>
+                    <text x="440" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">完全在latent空间</text>
+                    <text x="440" y="65" text-anchor="middle" fill="#bfdbfe" font-size="12">不破坏SD</text>
+                    <polygon points="570,50 600,40 600,60" fill="#3b82f6"/>
+                    <rect x="610" y="20" width="240" height="60" rx="10" fill="#2563eb"/>
+                    <text x="730" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="600">不改变权重</text>
+                    <text x="730" y="65" text-anchor="middle" fill="#bfdbfe" font-size="12">测试时优化</text>
+                </svg>
+                <div class="slide-number">8 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 9 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">核心结论：模型上限问题</h2></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>方面</th>
+                            <th>LoRA</th>
+                            <th>AnomalyAny</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>本质</strong></td>
+                            <td>训练（改变权重）</td>
+                            <td>测试时优化</td>
+                        </tr>
+                        <tr>
+                            <td><strong>数据需求</strong></td>
+                            <td>10-100 张</td>
+                            <td>0 张（纯文本）</td>
+                        </tr>
+                        <tr>
+                            <td><strong>知识来源</strong></td>
+                            <td>训练样本</td>
+                            <td><strong style="color: #ef4444;">完全依赖基础模型</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="highlight-danger" style="margin-top: 30px;">
+                    <p style="font-size: 20px; font-weight: 600;">重要结论</p>
+                    <p style="font-size: 18px; margin-top: 12px;">LoRA和AnomalyAny都只是锦上添花！</p>
+                    <p style="font-size: 18px;">它们的上限完全由基础模型决定！</p>
+                </div>
+                <div class="slide-number">9 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 10 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">SD2.1的问题：为什么总是动漫风？</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">根本原因</h3>
+                <svg width="100%" height="140" viewBox="0 0 900 140">
+                    <rect x="150" y="20" width="600" height="100" rx="16" fill="#fee2e2" stroke="#ef4444" stroke-width="3"/>
+                    <text x="450" y="55" text-anchor="middle" fill="#991b1b" font-size="20" font-weight="600">训练数据LAION中动漫/插画占比过高</text>
+                    <text x="450" y="90" text-anchor="middle" fill="#7f1d1d" font-size="16">模型学到这个分布 → 生成总是有动漫风格</text>
+                </svg>
+                <table style="margin-top: 40px;">
+                    <thead>
+                        <tr>
+                            <th>特征</th>
+                            <th>SD2.1</th>
+                            <th>真实感模型</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>人脸</strong></td>
+                            <td>动漫化（大眼睛）</td>
+                            <td>真实</td>
+                        </tr>
+                        <tr>
+                            <td><strong>色彩</strong></td>
+                            <td>高饱和度</td>
+                            <td>自然</td>
+                        </tr>
+                        <tr>
+                            <td><strong>结构</strong></td>
+                            <td>简化</td>
+                            <td>准确</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="slide-number">10 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 11 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">模型对比实验</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">实验设置</h3>
+                <div class="highlight">
+                    <ul style="font-size: 18px;">
+                        <li>相同：text-to-image，不用LoRA/AnomalyAny</li>
+                        <li>变量：不同基础模型</li>
+                        <li>Prompt：「a person using a phone, realistic photo」</li>
+                    </ul>
+                </div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">结果对比</h3>
+                <svg width="100%" height="240" viewBox="0 0 900 240">
+                    <rect x="50" y="10" width="800" height="40" rx="8" fill="#fee2e2"/>
+                    <text x="150" y="35" text-anchor="middle" fill="#991b1b" font-size="16" font-weight="600">SD2.1</text>
+                    <text x="600" y="35" text-anchor="middle" fill="#7f1d1d" font-size="16">⭐ 高动漫风</text>
+                    <rect x="50" y="60" width="800" height="40" rx="8" fill="#dcfce7"/>
+                    <text x="190" y="85" text-anchor="middle" fill="#166534" font-size="16" font-weight="600">Realistic Vision 1.5</text>
+                    <text x="600" y="85" text-anchor="middle" fill="#15803d" font-size="16">⭐⭐⭐⭐⭐ 低动漫风，真实感强</text>
+                    <rect x="50" y="110" width="800" height="40" rx="8" fill="#fef3c7"/>
+                    <text x="150" y="135" text-anchor="middle" fill="#92400e" font-size="16" font-weight="600">SDXL</text>
+                    <text x="600" y="135" text-anchor="middle" fill="#78350f" font-size="16">⭐⭐⭐⭐ 中等</text>
+                    <rect x="50" y="160" width="800" height="40" rx="8" fill="#dcfce7"/>
+                    <text x="150" y="185" text-anchor="middle" fill="#166534" font-size="16" font-weight="600">ZImage</text>
+                    <text x="600" y="185" text-anchor="middle" fill="#15803d" font-size="16">⭐⭐⭐⭐⭐ 低动漫风，真实感强</text>
+                </svg>
+                <div class="highlight-success" style="margin-top: 20px;">
+                    <p style="font-size: 18px; font-weight: 600;">结论：SD2.1确实不适合真实感任务！换用更好的基础模型是关键！</p>
+                </div>
+                <div class="slide-number">11 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 12 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">人脸修复工作：当前方案</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">问题背景</h3>
+                <div class="highlight-warning">
+                    <p style="font-size: 18px; font-weight: 600;">目标数据集中约 70% 人脸被打马赛克</p>
+                </div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">当前方案：二阶段修复</h3>
+                <svg width="100%" height="140" viewBox="0 0 900 140">
+                    <rect x="30" y="20" width="200" height="100" rx="12" fill="#f0f7ff" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="130" y="50" text-anchor="middle" fill="#1e40af" font-size="16" font-weight="600">马赛克检测</text>
+                    <text x="130" y="80" text-anchor="middle" fill="#64748b" font-size="14">统计连续灰色区域</text>
+                    <text x="130" y="100" text-anchor="middle" fill="#64748b" font-size="12">简单但不够鲁棒</text>
+                    <polygon points="240,70 270,60 270,80" fill="#3b82f6"/>
+                    <rect x="280" y="20" width="200" height="100" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+                    <text x="380" y="50" text-anchor="middle" fill="#92400e" font-size="16" font-weight="600">阶段1</text>
+                    <text x="380" y="80" text-anchor="middle" fill="#78350f" font-size="14">SD2.1 Inpainting</text>
+                    <text x="380" y="100" text-anchor="middle" fill="#78350f" font-size="12">修复人脸</text>
+                    <polygon points="490,70 520,60 520,80" fill="#f59e0b"/>
+                    <rect x="530" y="20" width="200" height="100" rx="12" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+                    <text x="630" y="50" text-anchor="middle" fill="#166534" font-size="16" font-weight="600">阶段2</text>
+                    <text x="630" y="80" text-anchor="middle" fill="#15803d" font-size="14">ZImage轻微写实处理</text>
+                    <text x="630" y="100" text-anchor="middle" fill="#15803d" font-size="12">增强真实感</text>
+                </svg>
+                <div class="slide-number">12 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 13 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">人脸修复工作：现有问题与改进方向</h2></div>
+                <div class="two-col">
+                    <div class="card">
+                        <h4>现有问题</h4>
+                        <div class="highlight-danger" style="margin-top: 16px;">
+                            <p><strong>问题1</strong>：马赛克检测有漏检</p>
+                            <p style="font-size: 14px; margin-top: 8px;">应对：二次修复</p>
+                        </div>
+                        <div class="highlight-danger" style="margin-top: 16px;">
+                            <p><strong>问题2</strong>：SD2.1修复结果仍有动漫风</p>
+                            <p style="font-size: 14px; margin-top: 8px;">阶段2可部分缓解，但阶段1太差会被放大</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4>改进方向</h4>
+                        <div class="highlight-success" style="margin-top: 16px;">
+                            <p style="font-size: 18px; font-weight: 600;">优先方案</p>
+                            <p style="margin-top: 8px;">直接使用 ZImage或Flux的Inpainting能力！</p>
+                            <ul style="margin-top: 12px; font-size: 16px;">
+                                <li>新模型本身的真实感更强</li>
+                                <li>减少对二阶段的依赖</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="slide-number">13 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 14 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">后续规划：近期任务（1-2周）</h2></div>
+                <div style="margin-top: 40px;">
+                    <div class="card" style="margin-bottom: 24px;">
+                        <h4>✅ 验证新模型inpainting能力</h4>
+                        <p style="margin-top: 12px; font-size: 16px;">ZImage、Flux测试，与SD2.1对比</p>
+                        <p style="color: #64748b; margin-top: 8px;">⏱ 预计时间：1-2 天</p>
+                    </div>
+                    <div class="card" style="margin-bottom: 24px;">
+                        <h4>✅ 改进人脸修复系统</h4>
+                        <p style="margin-top: 12px; font-size: 16px;">用新模型替换SD2.1，改进马赛克检测算法</p>
+                        <p style="color: #64748b; margin-top: 8px;">⏱ 预计时间：2-3 天</p>
+                    </div>
+                    <div class="card">
+                        <h4>✅ 可选：训练新模型的LoRA</h4>
+                        <p style="margin-top: 12px; font-size: 16px;">如果新模型效果已很好 → 收集少量数据微调</p>
+                        <p style="color: #64748b; margin-top: 8px;">⏱ 预计时间：3-5 天</p>
+                    </div>
+                </div>
+                <div class="slide-number">14 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 15 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">后续规划：长期探索（1-2月）</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">并行探索策略</h3>
+                <div class="two-col">
+                    <div class="card" style="background: linear-gradient(145deg, #dcfce7, #bbf7d0);">
+                        <h4 style="color: #166534;">路径A：直接用新模型</h4>
+                        <ul style="margin-top: 16px; font-size: 16px;">
+                            <li>ZImage / Flux</li>
+                            <li>训练新模型 LoRA</li>
+                        </ul>
+                    </div>
+                    <div class="card" style="background: linear-gradient(145deg, #dbeafe, #bfdbfe);">
+                        <h4 style="color: #1e40af;">路径B：AnomalyAny迁移</h4>
+                        <ul style="margin-top: 16px; font-size: 16px;">
+                            <li>SDXL迁移：1-2周，较容易</li>
+                            <li>Flux迁移：3-4周，高难度</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight" style="margin-top: 30px;">
+                    <p style="font-size: 18px; font-weight: 600;">关键决策点：如果路径A（新模型+LoRA）已足够好 → 可以考虑放弃路径B！</p>
+                </div>
+                <div class="slide-number">15 / 16</div>
+            </div>
+        </div>
+        <!-- Slide 16 -->
+        <div class="slide-container">
+            <div class="slide slide-cover">
+                <div style="z-index: 1; text-align: center;">
+                    <h1 style="font-size: 36px;">总结与Q&A</h1>
+                    <div style="margin-top: 50px; max-width: 900px; text-align: left;">
+                        <h3 style="color: #60a5fa; margin-bottom: 20px; font-size: 24px;">本周核心收获</h3>
+                        <ul style="font-size: 18px; line-height: 1.8;">
+                            <li>深入理解了SD三种Pipeline与AnomalyAny</li>
+                            <li>得出核心结论：基础模型决定上限</li>
+                            <li>SD2.1不适合真实感任务</li>
+                            <li>新模型（RV1.5、SDXL、ZImage）优势明显</li>
+                        </ul>
+                        <h3 style="color: #60a5fa; margin: 36px 0 20px 0; font-size: 24px;">后续重点</h3>
+                        <ul style="font-size: 18px; line-height: 1.8;">
+                            <li>优先验证新模型inpainting</li>
+                            <li>改进人脸修复系统</li>
+                            <li>并行探索AnomalyAny迁移</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="slide-number" style="color: rgba(255,255,255,0.6);">16 / 16</div>
+            </div>
+        </div>
+        <!-- Navigation -->
+        <div class="nav-controls">
+            <button class="nav-btn" id="prevBtn">←</button>
+            <button class="nav-btn" id="nextBtn">→</button>
+        </div>
+        <div class="slide-progress" id="progressDots"></div>
+    </div>
+    <script>
+        let currentIndex = 0;
+        const slides = document.querySelectorAll('.slide-container');
+        const totalSlides = slides.length;
+        let touchStartX = 0;
+        let touchEndX = 0;
+        // Initialize progress dots
+        const progressContainer = document.getElementById('progressDots');
+        for (let i = 0; i < totalSlides; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'dot' + (i === 0 ? ' active' : '');
+            dot.addEventListener('click', () => goToSlide(i));
+            progressContainer.appendChild(dot);
+        }
+        const dots = document.querySelectorAll('.dot');
+        function updateSlide(newIndex) {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index < newIndex) slide.classList.add('prev');
+                else if (index === newIndex) slide.classList.add('active');
+            });
+            dots.forEach((dot, index) => dot.classList.toggle('active', index === newIndex));
+            document.getElementById('prevBtn').disabled = newIndex === 0;
+            document.getElementById('nextBtn').disabled = newIndex === totalSlides - 1;
+            currentIndex = newIndex;
+        }
+        function goToSlide(index) {
+            if (index >= 0 && index < totalSlides) updateSlide(index);
+        }
+        function nextSlide() { if (currentIndex < totalSlides - 1) updateSlide(currentIndex + 1); }
+        function prevSlide() { if (currentIndex > 0) updateSlide(currentIndex - 1); }
+        document.getElementById('prevBtn').addEventListener('click', prevSlide);
+        document.getElementById('nextBtn').addEventListener('click', nextSlide);
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+        });
+        // Touch/Swipe navigation
+        const container = document.getElementById('presentation');
+        container.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        container.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) nextSlide(); else prevSlide();
+            }
+        }, { passive: true });
+        // Mouse drag for desktop
+        let isDragging = false, startX = 0;
+        container.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX; });
+        container.addEventListener('mouseup', (e) => {
+            if (isDragging) {
+                const diff = startX - e.clientX;
+                if (Math.abs(diff) > 50) { if (diff > 0) nextSlide(); else prevSlide(); }
+            }
+            isDragging = false;
+        });
+        container.addEventListener('mousemove', () => { if (!isDragging) return; });
+        // Initialize
+        updateSlide(0);
+    </script>
+</body>
+</html>
