@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>工作周总结与研究进展 - 详细版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@400;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; overflow: hidden; }
+        body { font-family: 'Source Serif Pro', Noto Serif SC, Georgia, serif; background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%); }
+        .presentation-container { width: 100%; height: 100%; position: relative; perspective: 1200px; }
+        .slide-container {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: translateX(100%) scale(0.95);
+        }
+        .slide-container.active {
+            opacity: 1; visibility: visible; transform: translateX(0) scale(1); z-index: 10;
+        }
+        .slide-container.prev { transform: translateX(-100%) scale(0.95); }
+        .slide {
+            width: 95%; max-width: 1400px; height: 90%;
+            background: white; border-radius: 24px; box-shadow: 0 30px 80px rgba(0,0,0,0.15);
+            padding: 60px 80px; overflow-y: auto; position: relative;
+        }
+        @media (max-width: 768px) { .slide { padding: 40px; width: 96%; } }
+        .slide-header {
+            border-bottom: 3px solid #1e40af; padding-bottom: 24px; margin-bottom: 40px;
+        }
+        .slide-title {
+            font-size: clamp(28px); color: #1e3a5f; font-weight: 700;
+        }
+        .slide-cover {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            background: linear-gradient(135deg, #1e3a5f, #0f172a); color: white; position: relative; overflow: hidden;
+        }
+        .slide-cover::before {
+            content: ''; position: absolute; top: -50%; right: -10%; width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .slide-cover h1 { font-size: clamp(36px); z-index: 1; position: relative; }
+        .slide-cover .slide-header { border-bottom-color: rgba(255,255,255,0.3); }
+        .highlight { background: #f0f7ff; padding: 24px 32px; border-left: 5px solid #3b82f6; border-radius: 0 12px 12px 0; margin: 28px 0; }
+        .highlight-warning { background: #fef3c7; border-left-color: #f59e0b; }
+        .highlight-success { background: #dcfce7; border-left-color: #22c55e; }
+        .highlight-danger { background: #fee2e2; border-left-color: #ef4444; }
+        .highlight-info { background: #f0fdfa; border-left-color: #0d9488; }
+        table { width: 100%; border-collapse: collapse; margin: 30px 0; font-size: 18px; }
+        th, td { border: 1px solid #d1d5db; padding: 16px 20px; text-align: left; }
+        th { background: #1e40af; color: white; font-weight: 600; }
+        tr:nth-child(even) { background: #f8fafc; }
+        .nav-controls { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; z-index: 100; }
+        .nav-btn {
+            width: 60px; height: 60px; border-radius: 50%; border: none;
+            background: #1e40af; color: white; font-size: 24px; cursor: pointer;
+            box-shadow: 0 6px 20px rgba(30,64,175,0.4); transition: all 0.3s ease;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .nav-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(30,64,175,0.5); background: #1e3a8a; }
+        .nav-btn:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
+        .slide-progress { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 100; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: #cbd5e1; cursor: pointer; transition: all 0.3s ease; }
+        .dot.active { background: #1e40af; transform: scale(1.3); }
+        .slide-number { position: absolute; bottom: 30px; right: 50px; font-size: 16px; color: #64748b; font-weight: 600; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+        .card { padding: 30px; border-radius: 16px; background: linear-gradient(145deg, #ffffff, #f0f4f8); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        .card h4 { color: #1e40af; margin-bottom: 16px; font-size: 22px; }
+        svg { max-width: 100%; margin: 24px 0; }
+        .pipeline-step { margin: 12px 0; padding: 12px 16px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #3b82f6; }
+        .pipeline-step strong { color: #1e40af; }
+        .code-like { font-family: 'Courier New', monospace; background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; margin: 20px 0; }
+        .math { font-family: 'Times New Roman', serif; font-style: italic; }
+        @media (max-width: 768px) {
+            .nav-controls { bottom: 20px; } .nav-btn { width: 50px; height: 50px; font-size: 20px; }
+            .slide-progress { bottom: 90px; } .slide-number { right: 30px; }
+        }
+        @media (max-width: 480px) { .slide { padding: 24px; } }
+    </style>
+</head>
+<body>
+    <div class="presentation-container" id="presentation">
+        <!-- Slide 1 -->
+        <div class="slide-container active">
+            <div class="slide slide-cover">
+                <div class="slide-header" style="border-bottom: none;">
+                    <h1 style="color: white; font-size: clamp(36px);">工作周总结与研究进展</h1>
+                </div>
+                <div style="font-size: 22px; margin: 30px 0; color: #cbd5e1; z-index: 1;">
+                    Stable Diffusion三种Pipeline深度解析<br>与AnomalyAny原理解密
+                </div>
+                <div style="font-size: 18px; margin-top: 60px; color: #e2e8f0; z-index: 1;">
+                    <p>汇报人：[您的姓名]</p>
+                    <p>日期：2026年5月18日</p>
+                </div>
+                <div class="slide-number" style="color: rgba(255,255,255,0.6);">1 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 2 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">工作概述</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">本周核心目标</h3>
+                <svg width="100%" height="160" viewBox="0 0 900 160">
+                    <rect x="50" y="20" width="350" height="120" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="225" y="55" text-anchor="middle" fill="#1e40af" font-size="16" font-weight="600">生成「人物玩手机」的真实数据</text>
+                    <text x="225" y="85" text-anchor="middle" fill="#64748b" font-size="14">用于数据集补充</text>
+                    <text x="225" y="110" text-anchor="middle" fill="#64748b" font-size="14">真实感强，无动漫风格</text>
+                    <rect x="500" y="20" width="350" height="120" rx="12" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+                    <text x="675" y="55" text-anchor="middle" fill="#166534" font-size="16" font-weight="600">人脸马赛克修复问题</text>
+                    <text x="675" y="85" text-anchor="middle" fill="#64748b" font-size="14">约 70% 人脸被打马赛克</text>
+                    <text x="675" y="110" text-anchor="middle" fill="#64748b" font-size="14">修复后保持真实感</text>
+                </svg>
+                <div class="slide-number">2 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 3 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">Diffusion Pipeline 基础架构</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">三大核心组件</h3>
+                <svg width="100%" height="280" viewBox="0 0 900 280">
+                    <rect x="350" y="10" width="200" height="45" rx="8" fill="#1e40af"/>
+                    <text x="450" y="38" text-anchor="middle" fill="white" font-size="15" font-weight="600">Text Prompt</text>
+                    <line x1="450" y1="55" x2="450" y2="75" stroke="#64748b" stroke-width="2"/>
+                    <rect x="280" y="75" width="340" height="45" rx="8" fill="#3b82f6"/>
+                    <text x="450" y="103" text-anchor="middle" fill="white" font-size="15" font-weight="600">Text Encoder (CLIP ViT-L/14)</text>
+                    <line x1="450" y1="120" x2="450" y2="140" stroke="#64748b" stroke-width="2"/>
+                    <rect x="150" y="140" width="600" height="60" rx="12" fill="#2563eb"/>
+                    <text x="450" y="175" text-anchor="middle" fill="white" font-size="16" font-weight="600">UNet (条件去噪网络)</text>
+                    <text x="450" y="192" text-anchor="middle" fill="#bfdbfe" font-size="12">交叉注意力层注入文本条件，引导生成方向</text>
+                    <line x1="250" y1="140" x2="250" y2="115" stroke="#64748b" stroke-width="2"/>
+                    <rect x="150" y="85" width="200" height="35" rx="8" fill="#1e3a8a"/>
+                    <text x="250" y="107" text-anchor="middle" fill="white" font-size="13" font-weight="600">Random Noise / Latent</text>
+                    <line x1="450" y1="200" x2="450" y2="220" stroke="#64748b" stroke-width="2"/>
+                    <rect x="300" y="220" width="300" height="45" rx="8" fill="#1e40af"/>
+                    <text x="450" y="248" text-anchor="middle" fill="white" font-size="15" font-weight="600">VAE Decoder → Final Image</text>
+                </svg>
+                <div class="highlight-warning" style="margin-top: 30px;">
+                    <strong>核心思想</strong>：通过多次去噪步骤，逐步从随机噪声生成符合文本描述的图像
+                </div>
+                <div class="slide-number">3 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 4 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">Text-to-Image Pipeline详解（1/2）</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">完整流程</h3>
+                <svg width="100%" height="200" viewBox="0 0 900 200">
+                    <rect x="20" y="30" width="160" height="45" rx="8" fill="#1e40af"/>
+                    <text x="100" y="58" text-anchor="middle" fill="white" font-size="14" font-weight="600">1. 文本编码</text>
+                    <polygon points="185,53 215,43 215,63" fill="#1e40af"/>
+                    <rect x="225" y="30" width="160" height="45" rx="8" fill="#3b82f6"/>
+                    <text x="305" y="58" text-anchor="middle" fill="white" font-size="14" font-weight="600">2. 噪声初始化</text>
+                    <polygon points="390,53 420,43 420,63" fill="#3b82f6"/>
+                    <rect x="430" y="30" width="160" height="45" rx="8" fill="#2563eb"/>
+                    <text x="510" y="58" text-anchor="middle" fill="white" font-size="14" font-weight="600">3. 去噪循环</text>
+                    <polygon points="595,53 625,43 625,63" fill="#2563eb"/>
+                    <rect x="635" y="30" width="160" height="45" rx="8" fill="#1e40af"/>
+                    <text x="715" y="58" text-anchor="middle" fill="white" font-size="14" font-weight="600">4. VAE解码</text>
+                    <rect x="150" y="100" width="600" height="80" rx="12" fill="#f0f7ff" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="450" y="128" text-anchor="middle" fill="#1e40af" font-size="15" font-weight="600">去噪循环详情（T = 50或1000步）</text>
+                    <text x="450" y="152" text-anchor="middle" fill="#475569" font-size="13">a) UNet预测噪声 → b) CFG引导 → c) Scheduler更新latent</text>
+                    <text x="450" y="172" text-anchor="middle" fill="#64748b" font-size="12">从纯噪声逐步去噪到清晰的图像表示</text>
+                </svg>
+                <div class="highlight-info">
+                    <p style="font-size: 18px; margin-bottom: 12px;"><strong>关键特点</strong></p>
+                    <ul style="font-size: 16px;">
+                        <li>完全从零生成，无输入图像约束</li>
+                        <li>生成内容由文本prompt完全控制</li>
+                        <li>多样性强，但生成过程较慢</li>
+                    </ul>
+                </div>
+                <div class="slide-number">4 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 5 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">Text-to-Image Pipeline详解（2/2）</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">CFG：Classifier-Free Guidance</h3>
+                <div class="code-like">
+                    <p style="font-size: 16px; margin-bottom: 8px;">预测噪声 = 无条件预测 + guidance_scale × (条件预测 - 无条件预测)</p>
+                    <p style="font-family: 'Times New Roman', serif; font-style: italic; font-size: 18px; margin-top: 12px;">
+                        ε_pred = ε_uncond + s × (ε_cond - ε_uncond)
+                    </p>
+                </div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">工作原理</h3>
+                <svg width="100%" height="180" viewBox="0 0 900 180">
+                    <rect x="30" y="20" width="250" height="50" rx="10" fill="#dbeafe"/>
+                    <text x="155" y="50" text-anchor="middle" fill="#1e40af" font-size="15" font-weight="600">ε_cond（有条件）</text>
+                    <text x="155" y="70" text-anchor="middle" fill="#64748b" font-size="13">有prompt，朝向目标生成</text>
+                    <rect x="325" y="20" width="250" height="50" rx="10" fill="#f0f7ff"/>
+                    <text x="450" y="50" text-anchor="middle" fill="#475569" font-size="15" font-weight="600">ε_uncond（无条件）</text>
+                    <text x="450" y="70" text-anchor="middle" fill="#64748b" font-size="13">无prompt，自由生成</text>
+                    <polygon points="580,45 610,35 610,55" fill="#3b82f6"/>
+                    <rect x="620" y="20" width="250" height="50" rx="10" fill="#2563eb"/>
+                    <text x="745" y="50" text-anchor="middle" fill="white" font-size="15" font-weight="600">放大差异</text>
+                    <text x="745" y="70" text-anchor="middle" fill="#bfdbfe" font-size="13">guidance_scale控制强度</text>
+                    <rect x="200" y="100" width="500" height="55" rx="10" fill="#1e40af"/>
+                    <text x="450" y="135" text-anchor="middle" fill="white" font-size="15" font-weight="600">ε_pred：朝着文本描述加速前进！</text>
+                </svg>
+                <div class="highlight-warning" style="margin-top: 20px;">
+                    <strong>guidance_scale建议值</strong>：7-9适中，值越高越严格贴合prompt，但可能失真
+                </div>
+                <div class="slide-number">5 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 6 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">Image-to-Image Pipeline详解（1/2）</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">核心思想</h3>
+                <svg width="100%" height="200" viewBox="0 0 900 200">
+                    <rect x="50" y="20" width="200" height="45" rx="8" fill="#1e40af"/>
+                    <text x="150" y="48" text-anchor="middle" fill="white" font-size="15" font-weight="600">输入图像</text>
+                    <polygon points="255,43 285,33 285,53" fill="#1e40af"/>
+                    <rect x="295" y="20" width="120" height="45" rx="8" fill="#3b82f6"/>
+                    <text x="355" y="48" text-anchor="middle" fill="white" font-size="15" font-weight="600">VAE编码</text>
+                    <polygon points="420,43 450,33 450,53" fill="#3b82f6"/>
+                    <rect x="460" y="20" width="120" height="45" rx="8" fill="#f59e0b"/>
+                    <text x="520" y="48" text-anchor="middle" fill="white" font-size="15" font-weight="600">加噪</text>
+                    <polygon points="585,43 615,33 615,53" fill="#f59e0b"/>
+                    <rect x="625" y="20" width="200" height="45" rx="8" fill="#22c55e"/>
+                    <text x="725" y="48" text-anchor="middle" fill="white" font-size="15" font-weight="600">去噪 + 新条件</text>
+                    <polygon points="830,43 860,33 860,53" fill="#22c55e"/>
+                    <rect x="870" y="20" width="100" height="45" rx="8" fill="#166534"/>
+                    <text x="920" y="48" text-anchor="middle" fill="white" font-size="15" font-weight="600">输出</text>
+                    <rect x="300" y="100" width="300" height="80" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="3"/>
+                    <text x="450" y="135" text-anchor="middle" fill="#92400e" font-size="16" font-weight="600">denoising_strength控制</text>
+                    <text x="450" y="162" text-anchor="middle" fill="#78350f" font-size="13">值越小 → 保留原图越多<br>值越大 → 变化越大，接近1时类似txt2img</text>
+                </svg>
+                <div class="highlight-success" style="margin-top: 20px;">
+                    <strong>优点</strong>：保留原图布局和结构，同时可以改变风格或内容
+                </div>
+                <div class="slide-number">6 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 7 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">Image-to-Image Pipeline详解（2/2）</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">加噪与去噪的完整循环</h3>
+                <div class="two-col">
+                    <div class="card">
+                        <h4>加噪阶段</h4>
+                        <svg width="100%" height="160" viewBox="0 0 300 160">
+                            <rect x="20" y="20" width="260" height="40" rx="8" fill="#fef3c7"/>
+                            <text x="150" y="45" text-anchor="middle" fill="#92400e" font-size="14" font-weight="600">原图Latent → 加噪T步</text>
+                            <line x1="150" y1="60" x2="150" y2="80" stroke="#f59e0b" stroke-width="2"/>
+                            <rect x="20" y="80" width="260" height="60" rx="8" fill="#fbbf24"/>
+                            <text x="150" y="108" text-anchor="middle" fill="#78350f" font-size="14" font-weight="600">x_T = √α_T * x_0 + √(1-α_T)*ε</text>
+                            <text x="150" y="130" text-anchor="middle" fill="#78350f" font-size="11">（从干净到嘈杂的数学公式）</text>
+                        </svg>
+                    </div>
+                    <div class="card">
+                        <h4>去噪阶段</h4>
+                        <svg width="100%" height="160" viewBox="0 0 300 160">
+                            <rect x="20" y="20" width="260" height="40" rx="8" fill="#dcfce7"/>
+                            <text x="150" y="45" text-anchor="middle" fill="#166534" font-size="14" font-weight="600">x_T → 逐步去噪T步</text>
+                            <line x1="150" y1="60" x2="150" y2="80" stroke="#22c55e" stroke-width="2"/>
+                            <rect x="20" y="80" width="260" height="60" rx="8" fill="#4ade80"/>
+                            <text x="150" y="108" text-anchor="middle" fill="#166534" font-size="14" font-weight="600">x_{t-1} = f(x_t, t, prompt)</text>
+                            <text x="150" y="130" text-anchor="middle" fill="#166534" font-size="11">（UNet+CFG+Scheduler逐步去噪）</text>
+                        </svg>
+                    </div>
+                </div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">关键参数</h3>
+                <table>
+                    <thead>
+                        <tr><th>参数</th><th>作用</th><th>典型值</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>denoising_strength</td><td>控制加噪强度，即变化程度</td><td>0.5-0.8</td></tr>
+                        <tr><td>guidance_scale</td><td>控制文本引导强度</td><td>7-9</td></tr>
+                        <tr><td>num_inference_steps</td><td>去噪步数</td><td>50</td></tr>
+                    </tbody>
+                </table>
+                <div class="slide-number">7 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 8 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">Inpainting Pipeline详解（1/2）</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">核心技术：Masked Noise Blending</h3>
+                <svg width="100%" height="220" viewBox="0 0 900 220">
+                    <rect x="50" y="20" width="350" height="80" rx="12" fill="#f0f7ff" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="225" y="50" text-anchor="middle" fill="#1e40af" font-size="16" font-weight="600">非mask区域</text>
+                    <text x="225" y="80" text-anchor="middle" fill="#64748b" font-size="14">从原图latent同步加噪，保持一致性</text>
+                    <rect x="500" y="20" width="350" height="80" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+                    <text x="675" y="50" text-anchor="middle" fill="#92400e" font-size="16" font-weight="600">Mask区域</text>
+                    <text x="675" y="80" text-anchor="middle" fill="#78350f" font-size="14">UNet去噪，按prompt重新生成</text>
+                    <rect x="250" y="130" width="400" height="70" rx="12" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+                    <text x="450" y="158" text-anchor="middle" fill="#166534" font-size="15" font-weight="600">每步混合：latent = denoised * mask + noised_source * (1-mask)</text>
+                    <text x="450" y="182" text-anchor="middle" fill="#64748b" font-size="13">边界平滑过渡，无明显拼接痕迹</text>
+                </svg>
+                <div class="highlight-info" style="margin-top: 20px;">
+                    <strong>为什么要同步加噪？</strong>：如果非mask区域不加噪，边界的噪声水平不一致，会导致生硬的拼接痕迹
+                </div>
+                <div class="slide-number">8 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 9 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">Inpainting Pipeline详解（2/2）</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">完整流程</h3>
+                <div style="margin-top: 20px;">
+                    <div class="pipeline-step">
+                        <strong>步骤1</strong>：输入图像 + Mask（白色=需要重绘，黑色=保留）
+                    </div>
+                    <div class="pipeline-step">
+                        <strong>步骤2</strong>：原图通过VAE编码 → latent_source
+                    </div>
+                    <div class="pipeline-step">
+                        <strong>步骤3</strong>：初始化latent（随机噪声或img2img方式）
+                    </div>
+                    <div class="pipeline-step">
+                        <strong>步骤4</strong>：去噪循环：
+                        <ul style="margin-top: 8px; margin-left: 20px; font-size: 16px;">
+                            <li>a) UNet预测噪声</li>
+                            <li>b) CFG引导</li>
+                            <li>c) Scheduler更新 → denoised_latent</li>
+                            <li>d) 给latent_source加同样t步噪声 → noised_source</li>
+                            <li>e) 混合：latent = denoised_latent * mask + noised_source * (1-mask)</li>
+                        </ul>
+                    </div>
+                    <div class="pipeline-step">
+                        <strong>步骤5</strong>：VAE解码 → 最终图像
+                    </div>
+                </div>
+                <div class="highlight-warning" style="margin-top: 30px;">
+                    <strong>关键优势</strong>：只修改Mask区域，其余部分完美保留，且边界自然过渡
+                </div>
+                <div class="slide-number">9 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 10 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">AnomalyAny在SD流程中的位置</h2></div>
+                <div class="two-col">
+                    <div class="card">
+                        <h4>标准SD去噪</h4>
+                        <svg width="100%" height="180" viewBox="0 0 300 180">
+                            <rect x="40" y="20" width="220" height="40" rx="8" fill="#cbd5e1"/>
+                            <text x="150" y="45" text-anchor="middle" fill="#475569" font-size="14" font-weight="600">1. UNet预测噪声</text>
+                            <rect x="40" y="70" width="220" height="40" rx="8" fill="#cbd5e1"/>
+                            <text x="150" y="95" text-anchor="middle" fill="#475569" font-size="14" font-weight="600">2. CFG</text>
+                            <rect x="40" y="120" width="220" height="40" rx="8" fill="#cbd5e1"/>
+                            <text x="150" y="145" text-anchor="middle" fill="#475569" font-size="14" font-weight="600">3. Scheduler更新</text>
+                        </svg>
+                    </div>
+                    <div class="card">
+                        <h4>AnomalyAny去噪</h4>
+                        <svg width="100%" height="240" viewBox="0 0 300 240">
+                            <rect x="20" y="10" width="260" height="55" rx="12" fill="#3b82f6"/>
+                            <text x="150" y="35" text-anchor="middle" fill="white" font-size="14" font-weight="600">【插入】优化层</text>
+                            <text x="150" y="55" text-anchor="middle" fill="#bfdbfe" font-size="11">内循环×12次+早期额外优化</text>
+                            <rect x="40" y="75" width="220" height="35" rx="8" fill="#dbeafe"/>
+                            <text x="150" y="97" text-anchor="middle" fill="#1e40af" font-size="13" font-weight="600">1. UNet预测噪声</text>
+                            <rect x="40" y="120" width="220" height="35" rx="8" fill="#dbeafe"/>
+                            <text x="150" y="142" text-anchor="middle" fill="#1e40af" font-size="13" font-weight="600">2. CFG</text>
+                            <rect x="40" y="165" width="220" height="35" rx="8" fill="#dbeafe"/>
+                            <text x="150" y="187" text-anchor="middle" fill="#1e40af" font-size="13" font-weight="600">3. Scheduler更新</text>
+                        </svg>
+                    </div>
+                </div>
+                <div class="highlight" style="margin-top: 30px;">
+                    <p style="font-size: 18px; font-weight: 600;">核心特点</p>
+                    <p style="margin-top: 12px;">在<strong>每一步</strong>标准去噪之前，先进行<strong>latent空间的梯度下降优化</strong>，然后才执行正常的SD去噪步骤</p>
+                </div>
+                <div class="slide-number">10 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 11 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">AnomalyAny优化循环详解</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">每个去噪步t的完整操作</h3>
+                <svg width="100%" height="240" viewBox="0 0 900 240">
+                    <rect x="50" y="20" width="800" height="180" rx="16" fill="#f0f7ff" stroke="#3b82f6" stroke-width="3"/>
+                    <text x="450" y="55" text-anchor="middle" fill="#1e40af" font-size="17" font-weight="600">内循环优化（×12次）</text>
+                    <rect x="100" y="75" width="700" height="35" rx="8" fill="#dbeafe"/>
+                    <text x="450" y="97" text-anchor="middle" fill="#1e40af" font-size="14">1. 计算注意力损失L_att → 让关键词token获得足够注意力</text>
+                    <rect x="100" y="120" width="700" height="35" rx="8" fill="#f0f7ff"/>
+                    <text x="450" y="142" text-anchor="middle" fill="#475569" font-size="14">2. 后期加入CLIP损失L_img（t<0.7时关闭，t>0.7开启）</text>
+                    <rect x="100" y="165" width="700" height="35" rx="8" fill="#dbeafe"/>
+                    <text x="450" y="187" text-anchor="middle" fill="#1e40af" font-size="14">3. 梯度下降更新latent + 优化文本embedding</text>
+                    <line x1="450" y1="205" x2="450" y2="215" stroke="#1e40af" stroke-width="2"/>
+                    <text x="450" y="235" text-anchor="middle" fill="#3b82f6" font-size="14" font-weight="600">→ 早期额外优化（只在前10步进行） → 标准SD去噪</text>
+                </svg>
+                <div class="highlight-info" style="margin-top: 20px;">
+                    <strong>为什么内循环12次？</strong>：逐步微调，避免单次大改变破坏图像整体结构
+                </div>
+                <div class="slide-number">11 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 12 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">AnomalyAny三大损失函数详解（1/2）</h2></div>
+                <div class="two-col">
+                    <div class="card">
+                        <h4>L_att：注意力损失</h4>
+                        <div class="highlight-warning" style="margin-top: 16px;">
+                            <p style="font-size: 14px; margin-bottom: 8px;"><strong>目标</strong></p>
+                            <p style="font-size: 14px;">让缺陷关键词（如"scratch"）获得足够高的注意力</p>
+                        </div>
+                        <div class="code-like" style="font-size: 13px; margin-top: 16px;">
+                            # 伪代码<br>
+                            attn_map = get_attention_map(UNet)<br>
+                            target_attn = attn_map[target_token_indices]<br>
+                            # 最大化每个目标token的空间最大注意力<br>
+                            loss_att = max(0, 1 - max(target_attn))
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4>L_img：CLIP损失（后期）</h4>
+                        <div class="highlight-info" style="margin-top: 16px;">
+                            <p style="font-size: 14px; margin-bottom: 8px;"><strong>目标</strong></p>
+                            <p style="font-size: 14px;">让生成图像在CLIP空间更接近文本描述</p>
+                        </div>
+                        <div class="code-like" style="font-size: 13px; margin-top: 16px;">
+                            # 后期开启（t&gt;70%）<br>
+                            decoded_img = VAE.decode(latent)<br>
+                            img_emb = CLIP.encode_image(decoded_img)<br>
+                            txt_emb = CLIP.encode_text(prompt)<br>
+                            loss_img = 1 - cosine_similarity(img_emb, txt_emb)
+                        </div>
+                    </div>
+                </div>
+                <div class="highlight" style="margin-top: 30px;">
+                    <strong>为什么L_img后期才开启？</strong>：早期图像太模糊，CLIP指导效果不好；后期图像结构形成后再用CLIP精修细节
+                </div>
+                <div class="slide-number">12 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 13 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">AnomalyAny三大损失函数详解（2/2）</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">L_prompt：文本嵌入优化损失</h3>
+                <svg width="100%" height="200" viewBox="0 0 900 200">
+                    <rect x="50" y="20" width="800" height="70" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+                    <text x="450" y="50" text-anchor="middle" fill="#92400e" font-size="16" font-weight="600">目标：让简洁prompt的embedding向详细prompt靠拢</text>
+                    <text x="450" y="75" text-anchor="middle" fill="#78350f" font-size="13">（简洁prompt更容易让模型关注，详细prompt提供更精确指导）</text>
+                    <rect x="200" y="110" width="500" height="70" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="450" y="138" text-anchor="middle" fill="#1e40af" font-size="14" font-weight="600">loss_prompt = loss_total + (1 - cosine_similarity(emb_short, emb_original))</text>
+                    <text x="450" y="162" text-anchor="middle" fill="#64748b" font-size="12">同时优化：latent梯度下降 + prompt embedding微调</text>
+                </svg>
+                <div class="highlight-success" style="margin-top: 20px;">
+                    <strong>最终总损失</strong>：loss_total = 0.1 * loss_img + 0.5 * (t/T) * loss_att
+                    <p style="margin-top: 8px; font-size: 16px;">loss_att权重随步数增加，后期更强调注意力</p>
+                </div>
+                <div class="slide-number">13 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 14 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">核心函数：_update_latent 详解</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">梯度下降更新latent</h3>
+                <div class="code-like">
+                    <p style="font-size: 15px;">@staticmethod</p>
+                    <p style="font-size: 15px;">def _update_latent(latents, loss, step_size, return_grad=False):</p>
+                    <p style="font-size: 15px; margin-left: 20px;"># 计算损失对latent的梯度</p>
+                    <p style="font-size: 15px; margin-left: 40px;">grad_cond = torch.autograd.grad(</p>
+                    <p style="font-size: 15px; margin-left: 60px;">loss.requires_grad_(True),</p>
+                    <p style="font-size: 15px; margin-left: 60px;">[latents],</p>
+                    <p style="font-size: 15px; margin-left: 60px;">retain_graph=True</p>
+                    <p style="font-size: 15px; margin-left: 40px;">)[0]</p>
+                    <p style="font-size: 15px; margin-left: 20px;"># 梯度下降更新</p>
+                    <p style="font-size: 15px; margin-left: 40px;">latents = latents - step_size * grad_cond</p>
+                    <p style="font-size: 15px; margin-left: 20px;">return latents</p>
+                </div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">关键要点</h3>
+                <table>
+                    <thead>
+                        <tr><th>要点</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>requires_grad</td><td>latent是可训练变量！但只在优化步临时改变</td></tr>
+                        <tr><td>retain_graph</td><td>保留计算图，后续步骤可继续使用</td></tr>
+                        <tr><td>step_size</td><td>学习率，控制每次更新的步长</td></tr>
+                    </tbody>
+                </table>
+                <div class="highlight-warning" style="margin-top: 20px;">
+                    <strong>核心创新</strong>：完全在latent空间操作，不改变SD预训练权重！
+                </div>
+                <div class="slide-number">14 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 15 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">AnomalyAny完整时间线</h2></div>
+                <svg width="100%" height="300" viewBox="0 0 900 300">
+                    <rect x="30" y="30" width="840" height="40" rx="10" fill="#1e40af"/>
+                    <text x="450" y="55" text-anchor="middle" fill="white" font-size="16" font-weight="600">T=0 (纯噪声) → T=1 → ... → T=T_total (清晰图像)</text>
+                    <rect x="50" y="90" width="200" height="40" rx="8" fill="#3b82f6"/>
+                    <text x="150" y="115" text-anchor="middle" fill="white" font-size="14" font-weight="600">早期（t<10步）</text>
+                    <text x="150" y="140" text-anchor="middle" fill="#cbd5e1" font-size="12">额外优化+内循环×12</text>
+                    <polygon points="255,110 285,100 285,120" fill="#3b82f6"/>
+                    <rect x="295" y="90" width="200" height="40" rx="8" fill="#60a5fa"/>
+                    <text x="395" y="115" text-anchor="middle" fill="white" font-size="14" font-weight="600">中期</text>
+                    <text x="395" y="140" text-anchor="middle" fill="#cbd5e1" font-size="12">内循环×12，L_img关闭</text>
+                    <polygon points="500,110 530,100 530,120" fill="#60a5fa"/>
+                    <rect x="540" y="90" width="200" height="40" rx="8" fill="#93c5fd"/>
+                    <text x="640" y="115" text-anchor="middle" fill="#1e3a8a" font-size="14" font-weight="600">后期（t>70%）</text>
+                    <text x="640" y="140" text-anchor="middle" fill="#1e3a8a" font-size="12">内循环×12，L_img开启</text>
+                    <polygon points="750,110 780,100 780,120" fill="#93c5fd"/>
+                    <rect x="50" y="170" width="800" height="40" rx="8" fill="#f0f7ff" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="450" y="195" text-anchor="middle" fill="#1e40af" font-size="14">【每一步】内循环优化 → 标准SD去噪 → 【下一步】</text>
+                    <rect x="150" y="230" width="600" height="50" rx="10" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+                    <text x="450" y="260" text-anchor="middle" fill="#166534" font-size="15" font-weight="600">在latent空间优化，不破坏SD，灵活且强大！</text>
+                </svg>
+                <div class="slide-number">15 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 16 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">核心结论：模型上限问题</h2></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>方面</th>
+                            <th>LoRA</th>
+                            <th>AnomalyAny</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>本质</strong></td>
+                            <td>训练（改变模型权重）</td>
+                            <td>测试时优化（不改权重）</td>
+                        </tr>
+                        <tr>
+                            <td><strong>数据需求</strong></td>
+                            <td>10-100张训练图像</td>
+                            <td>0张（仅文本）</td>
+                        </tr>
+                        <tr>
+                            <td><strong>知识来源</strong></td>
+                            <td>从训练数据学习新内容</td>
+                            <td><strong style="color: #ef4444;">完全依赖基础模型预训练知识</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>能力边界</strong></td>
+                            <td>可以突破基础模型的限制</td>
+                            <td>上限就是基础模型的能力天花板</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="highlight-danger" style="margin-top: 30px;">
+                    <p style="font-size: 20px; font-weight: 600;">重要结论</p>
+                    <p style="font-size: 18px; margin-top: 12px;">LoRA和AnomalyAny都只是<strong>锦上添花</strong>！</p>
+                    <p style="font-size: 18px;">它们的上限完全由<strong>基础模型</strong>的能力决定！</p>
+                </div>
+                <div class="slide-number">16 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 17 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">SD2.1的问题：为什么总是动漫风？</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">根本原因</h3>
+                <svg width="100%" height="160" viewBox="0 0 900 160">
+                    <rect x="100" y="20" width="700" height="120" rx="16" fill="#fee2e2" stroke="#ef4444" stroke-width="3"/>
+                    <text x="450" y="55" text-anchor="middle" fill="#991b1b" font-size="18" font-weight="600">训练数据LAION-5B中，动漫/插画内容占比过高</text>
+                    <text x="450" y="85" text-anchor="middle" fill="#7f1d1d" font-size="15">模型学习到了这个分布偏向 → 生成时自然偏向动漫风格</text>
+                    <text x="450" y="115" text-anchor="middle" fill="#7f1d1d" font-size="13">无论怎么调整prompt/CFG/AnomalyAny，都无法从根本上改变</text>
+                </svg>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">对比</h3>
+                <table>
+                    <thead>
+                        <tr><th>特征</th><th>SD2.1</th><th>真实感模型</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>人脸</strong></td><td>动漫化（大眼睛、简化）</td><td>真实</td></tr>
+                        <tr><td><strong>色彩</strong></td><td>高饱和度</td><td>自然</td></tr>
+                        <tr><td><strong>结构</strong></td><td>简化</td><td>准确</td></tr>
+                    </tbody>
+                </table>
+                <div class="slide-number">17 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 18 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">模型对比与后续方向</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">近期任务（1-2周）</h3>
+                <div style="margin-top: 20px;">
+                    <div class="card" style="margin-bottom: 24px;">
+                        <h4>✅ 验证新模型inpainting能力</h4>
+                        <p style="margin-top: 12px; font-size: 16px;">ZImage、Flux等测试，对比SD2.1效果</p>
+                        <p style="color: #64748b; margin-top: 8px;">⏱ 预计时间：1-2天</p>
+                    </div>
+                    <div class="card" style="margin-bottom: 24px;">
+                        <h4>✅ 改进人脸修复系统</h4>
+                        <p style="margin-top: 12px; font-size: 16px;">用新模型替换SD2.1，改进马赛克检测</p>
+                        <p style="color: #64748b; margin-top: 8px;">⏱ 预计时间：2-3天</p>
+                    </div>
+                    <div class="card">
+                        <h4>✅ 可选：训练新模型的LoRA</h4>
+                        <p style="margin-top: 12px; font-size: 16px;">如果新模型基础效果已很好，少量数据微调LoRA</p>
+                        <p style="color: #64748b; margin-top: 8px;">⏱ 预计时间：3-5天</p>
+                    </div>
+                </div>
+                <div class="highlight-success" style="margin-top: 30px;">
+                    <strong>关键决策</strong>：如果新模型+LoRA效果已足够好，可以考虑暂时搁置AnomalyAny迁移！
+                </div>
+                <div class="slide-number">18 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 19 -->
+        <div class="slide-container">
+            <div class="slide">
+                <div class="slide-header"><h2 class="slide-title">长期探索方向</h2></div>
+                <h3 style="margin: 30px 0; color: #1e40af; font-size: 22px;">并行探索策略</h3>
+                <div class="two-col">
+                    <div class="card" style="background: linear-gradient(145deg, #dcfce7, #bbf7d0);">
+                        <h4 style="color: #166534;">路径A：直接用新模型</h4>
+                        <ul style="margin-top: 16px; font-size: 16px;">
+                            <li>ZImage、Flux、SDXL等</li>
+                            <li>训练新模型的LoRA</li>
+                            <li>快速见效，风险低</li>
+                        </ul>
+                    </div>
+                    <div class="card" style="background: linear-gradient(145deg, #dbeafe, #bfdbfe);">
+                        <h4 style="color: #1e40af;">路径B：AnomalyAny迁移</h4>
+                        <ul style="margin-top: 16px; font-size: 16px;">
+                            <li>SDXL迁移：1-2周，相对容易</li>
+                            <li>Flux迁移：3-4周，高难度（纯Transformer架构）</li>
+                            <li>技术探索性强，但周期长</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight" style="margin-top: 30px;">
+                    <p style="font-size: 18px; font-weight: 600;">建议优先级</p>
+                    <p style="margin-top: 12px;">
+                        路径A（新模型+LoRA）→ 如果仍不满意 → 再考虑路径B
+                    </p>
+                </div>
+                <div class="slide-number">19 / 20</div>
+            </div>
+        </div>
+        <!-- Slide 20 -->
+        <div class="slide-container">
+            <div class="slide slide-cover">
+                <div style="z-index: 1; text-align: center;">
+                    <h1 style="font-size: 36px;">总结与Q&A</h1>
+                    <div style="margin-top: 50px; max-width: 900px; text-align: left;">
+                        <h3 style="color: #60a5fa; margin-bottom: 20px; font-size: 24px;">本周核心收获</h3>
+                        <ul style="font-size: 18px; line-height: 1.8;">
+                            <li>深度理解SD的三种Pipeline（txt2img/img2img/inpainting）</li>
+                            <li>详细解析AnomalyAny的优化机制（L_att/L_img/L_prompt）</li>
+                            <li>得出：LoRA和AnomalyAny的上限由基础模型决定</li>
+                            <li>SD2.1不适合真实感任务 → 需要换模型</li>
+                        </ul>
+                        <h3 style="color: #60a5fa; margin: 36px 0 20px 0; font-size: 24px;">后续重点</h3>
+                        <ul style="font-size: 18px; line-height: 1.8;">
+                            <li>优先验证新模型inpainting能力（ZImage、Flux）</li>
+                            <li>改进人脸修复系统</li>
+                            <li>并行探索AnomalyAny迁移（视新模型效果而定）</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="slide-number" style="color: rgba(255,255,255,0.6);">20 / 20</div>
+            </div>
+        </div>
+        <!-- Navigation -->
+        <div class="nav-controls">
+            <button class="nav-btn" id="prevBtn">←</button>
+            <button class="nav-btn" id="nextBtn">→</button>
+        </div>
+        <div class="slide-progress" id="progressDots"></div>
+    </div>
+    <script>
+        let currentIndex = 0;
+        const slides = document.querySelectorAll('.slide-container');
+        const totalSlides = slides.length;
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        // Initialize progress dots
+        const progressContainer = document.getElementById('progressDots');
+        for (let i = 0; i < totalSlides; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'dot' + (i === 0 ? ' active' : '');
+            dot.addEventListener('click', () => goToSlide(i));
+            progressContainer.appendChild(dot);
+        }
+        const dots = document.querySelectorAll('.dot');
+        
+        function updateSlide(newIndex) {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index < newIndex) slide.classList.add('prev');
+                else if (index === newIndex) slide.classList.add('active');
+            });
+            dots.forEach((dot, index) => dot.classList.toggle('active', index === newIndex));
+            document.getElementById('prevBtn').disabled = newIndex === 0;
+            document.getElementById('nextBtn').disabled = newIndex === totalSlides - 1;
+            currentIndex = newIndex;
+        }
+        
+        function goToSlide(index) {
+            if (index >= 0 && index < totalSlides) updateSlide(index);
+        }
+        
+        function nextSlide() { if (currentIndex < totalSlides - 1) updateSlide(currentIndex + 1); }
+        
+        function prevSlide() { if (currentIndex > 0) updateSlide(currentIndex - 1); }
+        
+        document.getElementById('prevBtn').addEventListener('click', prevSlide);
+        document.getElementById('nextBtn').addEventListener('click', nextSlide);
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                prevSlide();
+            }
+        });
+        
+        // Touch/Swipe navigation
+        const container = document.getElementById('presentation');
+        container.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        container.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) nextSlide();
+                else prevSlide();
+            }
+        }, { passive: true });
+        
+        // Mouse drag for desktop
+        let isDragging = false, startX = 0;
+        container.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX; });
+        container.addEventListener('mouseup', (e) => {
+            if (isDragging) {
+                const diff = startX - e.clientX;
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0) nextSlide();
+                    else prevSlide();
+                }
+            }
+            isDragging = false;
+        });
+        
+        // Initialize
+        updateSlide(0);
+    </script>
+</body>
+</html>
