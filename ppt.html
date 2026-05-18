@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作周总结与研究进展</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", "SimHei", sans-serif; background: #f0f2f5; }
+        .slide { width: 100vw; height: 100vh; display: none; padding: 80px; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 42px; font-weight: bold; color: #1e40af; margin-bottom: 40px; border-bottom: 3px solid #1e40af; padding-bottom: 20px; }
+        .slide-content { font-size: 24px; line-height: 1.8; color: #333; }
+        .slide-number { position: absolute; bottom: 40px; right: 80px; font-size: 18px; color: #999; }
+        .nav-buttons { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 100; }
+        .nav-btn { padding: 15px 30px; font-size: 18px; background: #1e40af; color: white; border: none; border-radius: 8px; cursor: pointer; margin: 0 10px; }
+        .nav-btn:hover { background: #1e3a8a; }
+        .nav-btn:disabled { background: #999; cursor: not-allowed; }
+        .cover-slide { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color: white; }
+        .cover-slide .slide-title { color: white; border-bottom-color: white; font-size: 56px; }
+        .highlight { background: #dbeafe; padding: 20px; border-left: 5px solid #3b82f6; border-radius: 5px; margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+        th, td { border: 1px solid #ddd; padding: 15px; text-align: left; }
+        th { background: #1e40af; color: white; }
+    </style>
+</head>
+<body>
+    <div class="slide active cover-slide">
+        <div class="slide-title">工作周总结与研究进展</div>
+        <div style="font-size: 28px; margin: 30px 0;">Stable Diffusion 原理理解、问题分析与后续计划</div>
+        <div style="font-size: 22px; margin-top: 60px;">
+            <p>汇报人：[您的姓名]</p>
+            <p>日期：2026年5月18日</p>
+        </div>
+        <div class="slide-number">1 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">工作概述</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">本周核心目标</h3>
+            <ul>
+                <li>生成「人物玩手机」的真实数据</li>
+                <li>解决人脸马赛克修复问题</li>
+            </ul>
+            <h3 style="margin: 30px 0; color: #1e40af;">工作流程</h3>
+            <ul>
+                <li>问题发现 → 理论分析 → 模型对比 → 系统实现</li>
+            </ul>
+        </div>
+        <div class="slide-number">2 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">问题发现：LoRA 方案的局限性</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">初始方案</h3>
+            <ul>
+                <li>用开源「人物玩手机」数据集训练 SD2.1 LoRA</li>
+            </ul>
+            <h3 style="margin: 30px 0; color: #1e40af;">问题</h3>
+            <div class="highlight">
+                ❌ SD2.1 始终生成动漫风格图片<br>
+                ❌ 无论标准 SD 还是 AnomalyAny 都无法解决
+            </div>
+            <h3 style="margin: 30px 0; color: #1e40af;">转向</h3>
+            <p>深入研究 SD 原理，分析根本原因</p>
+        </div>
+        <div class="slide-number">3 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">SD 整体架构</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">三大核心组件</h3>
+            <ul>
+                <li><strong>Text Encoder</strong>: CLIP ViT-L/14，将文本转为 embedding</li>
+                <li><strong>UNet</strong>: 条件去噪网络，注入文本条件</li>
+                <li><strong>VAE</strong>: 图像编码/解码到 latent 空间</li>
+            </ul>
+            <div class="highlight">
+                <strong>关键问题</strong>：UNet 学到的能力由训练数据决定！
+            </div>
+        </div>
+        <div class="slide-number">4 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">Text-to-Image 流程</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">完整步骤</h3>
+            <ol>
+                <li>文本 → CLIP → Text Embedding</li>
+                <li>随机噪声初始化</li>
+                <li>去噪循环：UNet 预测噪声 + CFG + Scheduler 更新</li>
+                <li>Clean Latent → VAE → 最终图片</li>
+            </ol>
+            <h3 style="margin: 30px 0; color: #1e40af;">CFG</h3>
+            <div class="highlight">
+                noise_pred = noise_pred_uncond + guidance_scale × (noise_pred_text - noise_pred_uncond)
+            </div>
+        </div>
+        <div class="slide-number">5 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">Img2Img 与 Inpainting</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">Img2Img 核心</h3>
+            <p>先加噪，再去噪，由 denoising_strength 控制加噪程度</p>
+            <h3 style="margin: 30px 0; color: #1e40af;">Inpainting: Masked Noise Blending</h3>
+            <ul>
+                <li>保留原图非 mask 区域</li>
+                <li>两边同步加噪，边界更平滑</li>
+                <li>混合：去噪结果 × mask + 原图加噪 × (1-mask)</li>
+            </ul>
+        </div>
+        <div class="slide-number">6 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">AnomalyAny 在 SD 流程中的位置</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">标准 SD 去噪</h3>
+            <ol>
+                <li>UNet 预测噪声</li>
+                <li>CFG</li>
+                <li>Scheduler 更新</li>
+            </ol>
+            <h3 style="margin: 30px 0; color: #1e40af;">AnomalyAny 去噪</h3>
+            <div class="highlight">
+                <strong>先优化</strong>：内循环 ×12 + 早期额外优化<br>
+                <strong>再去噪</strong>：标准 SD 去噪流程
+            </div>
+            <p>在标准去噪前插入优化层！</p>
+        </div>
+        <div class="slide-number">7 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">AnomalyAny 优化机制</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">三大损失函数</h3>
+            <ul>
+                <li><strong>L_att</strong>: 注意力损失，让关键词被关注</li>
+                <li><strong>L_img</strong>: CLIP 损失，后期开启</li>
+                <li><strong>L_prompt</strong>: 文本嵌入损失，对齐详细描述</li>
+            </ul>
+            <h3 style="margin: 30px 0; color: #1e40af;">核心创新</h3>
+            <ul>
+                <li>latents 变为可训练变量</li>
+                <li>梯度下降优化</li>
+                <li>完全在 latent 空间，不破坏 SD</li>
+            </ul>
+        </div>
+        <div class="slide-number">8 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">核心结论：模型上限问题</div>
+        <div class="slide-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th>方面</th>
+                        <th>LoRA</th>
+                        <th>AnomalyAny</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>本质</strong></td>
+                        <td>训练（改变权重）</td>
+                        <td>测试时优化</td>
+                    </tr>
+                    <tr>
+                        <td><strong>数据需求</strong></td>
+                        <td>10-100 张</td>
+                        <td>0 张（纯文本）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>知识来源</strong></td>
+                        <td>训练样本</td>
+                        <td>完全依赖基础模型</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="highlight">
+                <strong>结论</strong>：LoRA 和 AnomalyAny 都只是锦上添花！
+                它们的上限完全由基础模型决定！
+            </div>
+        </div>
+        <div class="slide-number">9 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">SD2.1 的问题：为什么总是动漫风？</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">根本原因</h3>
+            <div class="highlight">
+                训练数据 LAION 中动漫/插画占比过高 → 模型学到这个分布
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>特征</th>
+                        <th>SD2.1</th>
+                        <th>真实感模型</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>人脸</strong></td>
+                        <td>动漫化（大眼睛）</td>
+                        <td>真实</td>
+                    </tr>
+                    <tr>
+                        <td><strong>色彩</strong></td>
+                        <td>高饱和度</td>
+                        <td>自然</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="slide-number">10 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">模型对比实验</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">实验设置</h3>
+            <ul>
+                <li>相同：text-to-image，不用 LoRA/AnomalyAny</li>
+                <li>变量：不同基础模型</li>
+                <li>Prompt：「a person using a phone, realistic photo」</li>
+            </ul>
+            <h3 style="margin: 30px 0; color: #1e40af;">结果</h3>
+            <ul>
+                <li><strong>SD2.1</strong>: ⭐ 高动漫风</li>
+                <li><strong>Realistic Vision 1.5</strong>: ⭐⭐⭐⭐⭐ 低动漫风，真实感强</li>
+                <li><strong>SDXL</strong>: ⭐⭐⭐⭐ 中等</li>
+                <li><strong>ZImage</strong>: ⭐⭐⭐⭐⭐ 低动漫风，真实感强</li>
+            </ul>
+            <div class="highlight">
+                SD2.1 确实不适合真实感任务！换用更好的基础模型是关键！
+            </div>
+        </div>
+        <div class="slide-number">11 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">人脸修复工作：当前方案</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">问题背景</h3>
+            <div class="highlight">
+                目标数据集中约 70% 人脸被打马赛克
+            </div>
+            <h3 style="margin: 30px 0; color: #1e40af;">当前方案：二阶段修复</h3>
+            <ul>
+                <li><strong>阶段 1</strong>：SD2.1 Inpainting 修复</li>
+                <li><strong>阶段 2</strong>：ZImage 轻微写实处理</li>
+            </ul>
+            <h3 style="margin: 30px 0; color: #1e40af;">马赛克检测</h3>
+            <p>统计连续灰色区域 → 简单但不够鲁棒</p>
+        </div>
+        <div class="slide-number">12 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">人脸修复工作：现有问题与改进方向</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">现有问题</h3>
+            <ul>
+                <li><strong>问题 1</strong>：马赛克检测有漏检 → 应对：二次修复</li>
+                <li><strong>问题 2</strong>：SD2.1 修复结果仍有动漫风 → 阶段 2 可部分缓解，但如果阶段 1 太差，会被放大</li>
+            </ul>
+            <h3 style="margin: 30px 0; color: #1e40af;">改进方向</h3>
+            <div class="highlight">
+                <strong>优先方案</strong>：直接使用 ZImage 或 Flux 的 Inpainting 能力！
+            </div>
+            <ul>
+                <li>新模型本身的真实感更强</li>
+                <li>减少对二阶段的依赖</li>
+            </ul>
+        </div>
+        <div class="slide-number">13 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">后续规划：近期任务（1-2周）</div>
+        <div class="slide-content">
+            <ol>
+                <li>
+                    <h4 style="color: #1e40af;">验证新模型 inpainting 能力</h4>
+                    <p>ZImage、Flux 测试，与 SD2.1 对比</p>
+                    <p style="color: #999;">⏱ 预计时间：1-2 天</p>
+                </li>
+                <li>
+                    <h4 style="color: #1e40af;">改进人脸修复系统</h4>
+                    <p>用新模型替换 SD2.1，改进马赛克检测算法</p>
+                    <p style="color: #999;">⏱ 预计时间：2-3 天</p>
+                </li>
+                <li>
+                    <h4 style="color: #1e40af;">可选：训练新模型的 LoRA</h4>
+                    <p>如果新模型效果已很好 → 收集少量数据微调</p>
+                    <p style="color: #999;">⏱ 预计时间：3-5 天</p>
+                </li>
+            </ol>
+        </div>
+        <div class="slide-number">14 / 16</div>
+    </div>
+
+    <div class="slide">
+        <div class="slide-title">后续规划：长期探索（1-2月）</div>
+        <div class="slide-content">
+            <h3 style="margin: 30px 0; color: #1e40af;">并行探索策略</h3>
+            <div style="display: flex; gap: 40px;">
+                <div style="flex: 1; padding: 30px; background: #dcfce7; border-radius: 10px;">
+                    <strong style="color: #166534; font-size: 26px;">路径 A：直接用新模型</strong>
+                    <ul style="margin-top: 20px;">
+                        <li>ZImage / Flux</li>
+                        <li>训练新模型 LoRA</li>
+                    </ul>
+                </div>
+                <div style="flex: 1; padding: 30px; background: #dbeafe; border-radius: 10px;">
+                    <strong style="color: #1e40af; font-size: 26px;">路径 B：AnomalyAny 迁移</strong>
+                    <ul style="margin-top: 20px;">
+                        <li>SDXL 迁移：1-2周，较容易</li>
+                        <li>Flux 迁移：3-4周，高难度</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight" style="margin-top: 40px;">
+                <strong>关键决策点</strong>：如果路径 A（新模型+LoRA）已足够好 → 可以考虑放弃路径 B！
+            </div>
+        </div>
+        <div class="slide-number">15 / 16</div>
+    </div>
+
+    <div class="slide cover-slide">
+        <div class="slide-title">总结与 Q&A</div>
+        <div style="font-size: 26px; margin-top: 60px; max-width: 900px;">
+            <h3 style="color: #60a5fa; margin: 30px 0;">本周核心收获</h3>
+            <ul>
+                <li>深入理解了 SD 三种 Pipeline 与 AnomalyAny</li>
+                <li>得出核心结论：基础模型决定上限</li>
+                <li>SD2.1 不适合真实感任务</li>
+                <li>新模型（RV1.5、SDXL、ZImage）优势明显</li>
+            </ul>
+            <h3 style="color: #60a5fa; margin: 30px 0;">后续重点</h3>
+            <ul>
+                <li>优先验证新模型 inpainting</li>
+                <li>改进人脸修复系统</li>
+                <li>并行探索 AnomalyAny 迁移</li>
+            </ul>
+        </div>
+        <div class="slide-number">16 / 16</div>
+    </div>
+
+    <div class="nav-buttons">
+        <button class="nav-btn" id="prev-btn">← 上一页</button>
+        <button class="nav-btn" id="next-btn">下一页 →</button>
+    </div>
+
+    <script>
+        let current = 0;
+        const slides = document.querySelectorAll('.slide');
+
+        function update() {
+            slides.forEach((s, i) => s.classList.toggle('active', i === current));
+            document.getElementById('prev-btn').disabled = current === 0;
+            document.getElementById('next-btn').disabled = current === slides.length - 1;
+        }
+
+        document.getElementById('prev-btn').onclick = () => { if (current > 0) { current--; update(); } };
+        document.getElementById('next-btn').onclick = () => { if (current < slides.length - 1) { current++; update(); } };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && current > 0) current--;
+            else if (e.key === 'ArrowRight' && current < slides.length - 1) current++;
+            update();
+        });
+
+        update();
+    </script>
+</body>
+</html>
